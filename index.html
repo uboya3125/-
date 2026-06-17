@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>ケタアゲ・スイカゲーム ～小数の位を学ぼう～</title>
+<script src="https://cdn.jsdelivr.net/npm/matter-js@0.19.0/build/matter.min.js"></script>
+<style>
+  :root{
+    --bg:#fef6e4; --panel:#fffaf0; --ink:#3a2e1f; --accent:#ff8a3d;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;height:100%;background:var(--bg);font-family:"Hiragino Maru Gothic ProN","Yu Gothic",sans-serif;color:var(--ink);overflow:hidden;}
+  #app{display:flex;flex-direction:row;width:100%;height:100vh;}
+  #gameArea{position:relative;flex:1 1 auto;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;min-width:0;}
+  #title{font-size:1.4rem;font-weight:bold;margin:6px 0 2px;text-align:center;}
+  #canvasWrap{position:relative;}
+  canvas{display:block;background:#ffffff;border:4px solid #d8a45e;border-radius:12px;touch-action:none;}
+  #nextLabel{position:absolute;top:8px;left:50%;transform:translateX(-50%);font-size:0.9rem;background:rgba(255,255,255,0.85);padding:4px 10px;border-radius:10px;border:2px solid #d8a45e;}
+  #toast{position:absolute;top:60px;left:50%;transform:translateX(-50%);background:rgba(255,255,255,0.97);border:3px solid var(--accent);border-radius:14px;padding:10px 18px;font-size:1.1rem;font-weight:bold;text-align:center;box-shadow:0 4px 10px rgba(0,0,0,0.15);opacity:0;transition:opacity .3s,transform .3s;pointer-events:none;z-index:20;max-width:80%;}
+  #toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+  #celebrate{position:absolute;inset:0;display:none;align-items:center;justify-content:center;background:rgba(255,255,255,0.85);z-index:30;font-size:1.6rem;font-weight:bold;color:#e2541c;text-align:center;flex-direction:column;gap:10px;}
+  #celebrate.show{display:flex;}
+  #gameOverScreen{position:absolute;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,0.55);z-index:40;flex-direction:column;gap:14px;color:#fff;text-align:center;}
+  #gameOverScreen.show{display:flex;}
+  button{font-size:1.1rem;padding:10px 22px;border-radius:30px;border:none;background:var(--accent);color:#fff;font-weight:bold;cursor:pointer;box-shadow:0 3px 6px rgba(0,0,0,0.2);}
+  button:active{transform:scale(0.96);}
+  #sidePanel{width:260px;flex:0 0 260px;background:var(--panel);border-left:3px solid #d8a45e;padding:10px;overflow-y:auto;}
+  #sidePanel h2{font-size:1rem;margin:6px 0;border-bottom:2px solid var(--accent);padding-bottom:4px;}
+  table.placeTable{width:100%;border-collapse:collapse;font-size:0.85rem;margin-bottom:10px;}
+  table.placeTable th,table.placeTable td{border:1px solid #d8a45e;text-align:center;padding:4px 2px;}
+  table.placeTable th{background:#ffe7c2;}
+  #sumDisplay{font-size:1.3rem;font-weight:bold;text-align:center;background:#fff3e0;border-radius:10px;padding:8px;margin-bottom:10px;}
+  #scoreDisplay{font-size:1.05rem;text-align:center;font-weight:bold;margin-bottom:10px;}
+  #firstGoal{font-size:0.85rem;background:#fff3e0;border-radius:8px;padding:6px;margin-bottom:10px;}
+  #firstGoal.done{background:#d8f5d0;}
+  #controls{display:flex;flex-direction:column;gap:8px;}
+  #mute{background:#9c8d77;}
+  .legendRow{display:flex;align-items:center;gap:6px;font-size:0.8rem;margin:2px 0;}
+  .legendDot{width:14px;height:14px;border-radius:50%;display:inline-block;}
+  @media (max-width:760px){
+    #app{flex-direction:column;}
+    #sidePanel{width:100%;flex:0 0 auto;order:2;border-left:none;border-top:3px solid #d8a45e;}
+    #gameArea{order:1;}
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="gameArea">
+    <div id="title">ケタアゲ・スイカゲーム 〜小数の位を学ぼう〜</div>
+    <div id="canvasWrap">
+      <div id="nextLabel">つぎ: <span id="nextVal">0.001</span></div>
+      <div id="toast"></div>
+      <div id="celebrate">
+        <div id="celebrateText"></div>
+      </div>
+      <div id="gameOverScreen">
+        <div>ゲームオーバー！</div>
+        <div id="finalScore"></div>
+        <button id="retryBtn">もう一度</button>
+      </div>
+    </div>
+  </div>
+  <div id="sidePanel">
+    <h2>位取り表（くらいどりひょう）</h2>
+    <table class="placeTable">
+      <thead><tr><th>1の位</th><th>0.1の位</th><th>0.01の位</th><th>0.001の位</th></tr></thead>
+      <tbody><tr><td id="cnt1">0</td><td id="cnt01">0</td><td id="cnt001">0</td><td id="cnt0001">0</td></tr></tbody>
+    </table>
+    <div id="sumDisplay">合計: <span id="sumVal">0.000</span></div>
+    <div id="scoreDisplay">スコア: <span id="scoreVal">0</span></div>
+    <div id="firstGoal">🎯 目標: 「1」を1個つくろう！</div>
+    <div>
+      <div class="legendRow"><span class="legendDot" style="background:#6fc8e6"></span>0.001（千分の一の位）</div>
+      <div class="legendRow"><span class="legendDot" style="background:#7bc96f"></span>0.01（百分の一の位）</div>
+      <div class="legendRow"><span class="legendDot" style="background:#ffb648"></span>0.1（十分の一の位）</div>
+      <div class="legendRow"><span class="legendDot" style="background:#ef5b5b"></span>1（一の位）</div>
+    </div>
+    <div id="controls">
+      <button id="mute">🔊 音を消す</button>
+      <button id="restartBtn">最初からやり直す</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+"use strict";
+
+/* ===== ゲーム定数 ===== */
+const LEVELS = [
+  {value:0.001, label:"0.001", name:"千分の一の位", color:"#6fc8e6", radius:18, score:1},
+  {value:0.01,  label:"0.01",  name:"百分の一の位", color:"#7bc96f", radius:26, score:10},
+  {value:0.1,   label:"0.1",   name:"十分の一の位", color:"#ffb648", radius:36, score:100},
+  {value:1,     label:"1",     name:"一の位",       color:"#ef5b5b", radius:50, score:1000}
+];
+const MERGE_COUNT = 10;
+
+/* ===== Matter.js セットアップ ===== */
+const { Engine, World, Bodies, Body, Events, Vector, Composite } = Matter;
+const engine = Engine.create();
+engine.world.gravity.y = 1;
+
+let CANVAS_W = 460, CANVAS_H = 620;
+const WALL_T = 18;
+
+function computeCanvasSize(){
+  const wrap = document.getElementById('gameArea');
+  const maxW = Math.min(wrap.clientWidth - 20, 520);
+  const maxH = window.innerHeight - 60;
+  let w = Math.max(300, maxW);
+  let h = Math.min(maxH, w * 1.35);
+  CANVAS_W = Math.floor(w);
+  CANVAS_H = Math.floor(h);
+}
+computeCanvasSize();
+
+const canvas = document.createElement('canvas');
+canvas.id = 'gameCanvas';
+document.getElementById('canvasWrap').insertBefore(canvas, document.getElementById('nextLabel'));
+const ctx = canvas.getContext('2d');
+
+function resizeCanvas(){
+  computeCanvasSize();
+  canvas.width = CANVAS_W;
+  canvas.height = CANVAS_H;
+  rebuildWalls();
+}
+
+let walls = [];
+function rebuildWalls(){
+  walls.forEach(w=>World.remove(engine.world, w));
+  walls = [];
+  const floor = Bodies.rectangle(CANVAS_W/2, CANVAS_H + WALL_T/2, CANVAS_W, WALL_T, {isStatic:true, friction:0.5});
+  const left = Bodies.rectangle(-WALL_T/2, CANVAS_H/2, WALL_T, CANVAS_H*2, {isStatic:true});
+  const right = Bodies.rectangle(CANVAS_W + WALL_T/2, CANVAS_H/2, WALL_T, CANVAS_H*2, {isStatic:true});
+  walls = [floor, left, right];
+  World.add(engine.world, walls);
+}
+rebuildWalls();
+window.addEventListener('resize', resizeCanvas);
+
+/* ===== 状態 ===== */
+let pieces = []; // {body, levelIdx, id, groupId}
+let groups = {}; // groupId -> {levelIdx, memberIds:Set, count}
+let nextGroupId = 1;
+let nextPieceId = 1;
+let currentLevel = 0; // 落下中ピースのレベル
+let armX = CANVAS_W/2;
+let dropCooldown = false;
+let score = 0;
+let gameOver = false;
+let firstOneAchieved = false;
+let muted = false;
+const counts = {1:0, 0.1:0, 0.01:0, 0.001:0};
+
+let audioCtx = null;
+function ensureAudio(){
+  if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+}
+function beep(freq, dur, type='sine', gain=0.15){
+  if(muted) return;
+  try{
+    ensureAudio();
+    const osc = audioCtx.createOscillator();
+    const g = audioCtx.createGain();
+    osc.type = type;
+    osc.frequency.value = freq;
+    g.gain.value = gain;
+    osc.connect(g); g.connect(audioCtx.destination);
+    osc.start();
+    g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + dur);
+    osc.stop(audioCtx.currentTime + dur);
+  }catch(e){}
+}
+function sfxDrop(){ beep(300,0.08,'triangle',0.12); }
+function sfxMerge(){ beep(520,0.12,'sine',0.18); setTimeout(()=>beep(780,0.18,'sine',0.16),90); }
+function sfxBig(){ beep(440,0.15,'sine',0.2); setTimeout(()=>beep(660,0.15,'sine',0.2),120); setTimeout(()=>beep(880,0.25,'sine',0.22),240); }
+
+function randomLevelForSpawn(){
+  // 序盤は0.001のみ、進むほど少し上のレベルも混ざる(0~1の範囲のみ、ゲームバランス用)
+  const maxLevel = Math.min(1, Math.floor(score/3000)); // 0 or 1 (0.001 or 0.01)
+  const r = Math.random();
+  if(maxLevel === 0) return 0;
+  return r < 0.75 ? 0 : 1;
+}
+
+let nextLevel = 0;
+function pickNext(){
+  nextLevel = randomLevelForSpawn();
+  document.getElementById('nextVal').textContent = LEVELS[nextLevel].label;
+}
+pickNext();
+
+/* ===== ピース生成・描画 ===== */
+function spawnFalling(){
+  currentLevel = nextLevel;
+  pickNext();
+}
+spawnFalling();
+
+function createPieceBody(x, y, levelIdx){
+  const lv = LEVELS[levelIdx];
+  const r = lv.radius;
+  const body = Bodies.circle(x, y, r, {
+    restitution: 0.25,
+    friction: 0.4,
+    frictionAir: 0.001,
+    density: 0.001,
+    label: 'piece'
+  });
+  body.levelIdx = levelIdx;
+  body.pieceId = nextPieceId++;
+  body.groupId = null;
+  return body;
+}
+
+function dropPiece(x){
+  if(gameOver || dropCooldown) return;
+  dropCooldown = true;
+  const lv = LEVELS[currentLevel];
+  const r = lv.radius;
+  const clampedX = Math.max(r+WALL_T, Math.min(CANVAS_W - r - WALL_T, x));
+  const body = createPieceBody(clampedX, r + 10, currentLevel);
+  World.add(engine.world, body);
+  pieces.push(body);
+  sfxDrop();
+  counts[lv.value] += 0; // no count change on drop (only on merge completion / initial spawn doesn't add to placeTable count until it's a standalone settled piece)
+  setTimeout(()=>{ dropCooldown = false; }, 480);
+  spawnFalling();
+}
+
+/* ===== 入力 ===== */
+function setArmFromClientX(clientX){
+  const rect = canvas.getBoundingClientRect();
+  armX = clientX - rect.left;
+}
+canvas.addEventListener('mousemove', e=> setArmFromClientX(e.clientX));
+canvas.addEventListener('mousedown', e=>{ setArmFromClientX(e.clientX); dropPiece(armX); });
+canvas.addEventListener('touchmove', e=>{ e.preventDefault(); const t=e.touches[0]; setArmFromClientX(t.clientX); }, {passive:false});
+canvas.addEventListener('touchstart', e=>{ e.preventDefault(); const t=e.touches[0]; setArmFromClientX(t.clientX); dropPiece(armX); }, {passive:false});
+
+/* ===== グループ管理（接触で同じ位同士をグループ化） =====
+   ルール: 同じ levelIdx のピースが接触したらグループに統合。
+   10個になった瞬間に1つ上のピースへ繰り上げる。 */
+
+function findGroupOf(body){
+  return body.groupId;
+}
+
+function mergeGroups(gidA, gidB){
+  if(gidA === gidB) return gidA;
+  const a = groups[gidA], b = groups[gidB];
+  if(!a || !b) return gidA || gidB;
+  // bをaに統合
+  b.memberIds.forEach(id=>{
+    a.memberIds.add(id);
+  });
+  const bodyMap = {};
+  pieces.forEach(p=>{ if(b.memberIds.has(p.pieceId) || a.memberIds.has(p.pieceId)) bodyMap[p.pieceId]=p; });
+  a.memberIds.forEach(id=>{ if(bodyMap[id]) bodyMap[id].groupId = gidA; });
+  delete groups[gidB];
+  a.count = a.memberIds.size;
+  return gidA;
+}
+
+Events.on(engine, 'collisionStart', (event)=>{
+  event.pairs.forEach(pair=>{
+    const A = pair.bodyA, B = pair.bodyB;
+    if(A.label !== 'piece' || B.label !== 'piece') return;
+    if(A.levelIdx !== B.levelIdx) return;
+    if(A.levelIdx === LEVELS.length - 1) return; // 最大レベルは合体しない(本ゲームでは1まで)
+    let gidA = A.groupId, gidB = B.groupId;
+    if(!gidA && !gidB){
+      const gid = nextGroupId++;
+      groups[gid] = {levelIdx:A.levelIdx, memberIds:new Set([A.pieceId, B.pieceId]), count:2};
+      A.groupId = gid; B.groupId = gid;
+    } else if(gidA && !gidB){
+      groups[gidA].memberIds.add(B.pieceId);
+      groups[gidA].count = groups[gidA].memberIds.size;
+      B.groupId = gidA;
+    } else if(!gidA && gidB){
+      groups[gidB].memberIds.add(A.pieceId);
+      groups[gidB].count = groups[gidB].memberIds.size;
+      A.groupId = gidB;
+    } else {
+      mergeGroups(gidA, gidB);
+    }
+  });
+});
+
+/* ===== 演出系 ===== */
+let particles = [];
+function spawnParticles(x, y, color, n=24){
+  for(let i=0;i<n;i++){
+    const angle = Math.random()*Math.PI*2;
+    const speed = 2 + Math.random()*4;
+    particles.push({
+      x, y,
+      vx: Math.cos(angle)*speed,
+      vy: Math.sin(angle)*speed - 2,
+      life: 1, color
+    });
+  }
+}
+function updateParticles(){
+  particles.forEach(p=>{
+    p.x += p.vx; p.y += p.vy; p.vy += 0.15; p.life -= 0.025;
+  });
+  particles = particles.filter(p=>p.life > 0);
+}
+function drawParticles(){
+  particles.forEach(p=>{
+    ctx.globalAlpha = Math.max(0,p.life);
+    ctx.fillStyle = p.color;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, 4, 0, Math.PI*2);
+    ctx.fill();
+  });
+  ctx.globalAlpha = 1;
+}
+
+let toastTimer = null;
+function showToast(text){
+  const el = document.getElementById('toast');
+  el.textContent = text;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=> el.classList.remove('show'), 2400);
+}
+
+function showCelebrate(text, duration){
+  const el = document.getElementById('celebrate');
+  document.getElementById('celebrateText').textContent = text;
+  el.classList.add('show');
+  setTimeout(()=> el.classList.remove('show'), duration || 2200);
+}
+
+/* スカッシュ&ストレッチ用アニメーション情報を持つ "ポップ" ピース */
+let popAnimations = []; // {x,y,levelIdx,t}
+
+function processMergeCompletions(){
+  Object.keys(groups).forEach(gidStr=>{
+    const gid = Number(gidStr);
+    const g = groups[gid];
+    if(!g) return;
+    if(g.count >= MERGE_COUNT){
+      // 対象ピースを集めて重心を計算、削除
+      const members = pieces.filter(p=> p.groupId === gid);
+      if(members.length < MERGE_COUNT) { g.count = members.length; return; }
+      let cx = 0, cy = 0;
+      members.slice(0, MERGE_COUNT).forEach(p=>{ cx += p.position.x; cy += p.position.y; });
+      cx /= MERGE_COUNT; cy /= MERGE_COUNT;
+      const lv = LEVELS[g.levelIdx];
+
+      members.slice(0, MERGE_COUNT).forEach(p=>{
+        World.remove(engine.world, p);
+        pieces = pieces.filter(pp=>pp.pieceId !== p.pieceId);
+      });
+      delete groups[gid];
+
+      spawnParticles(cx, cy, lv.color, 30);
+      sfxMerge();
+
+      const newLevelIdx = g.levelIdx + 1;
+      const newBody = createPieceBody(cx, Math.max(cy, LEVELS[newLevelIdx].radius+10), newLevelIdx);
+      World.add(engine.world, newBody);
+      pieces.push(newBody);
+      popAnimations.push({pieceId:newBody.pieceId, t:0});
+
+      const nl = LEVELS[newLevelIdx];
+      showToast(`${lv.label}が10こ集まって ${nl.label} になったよ！\n（${lv.name}が10こで、${nl.name}になったよ）`);
+
+      if(newLevelIdx === LEVELS.length - 1){
+        // 「1」完成
+        if(!firstOneAchieved){
+          firstOneAchieved = true;
+          document.getElementById('firstGoal').textContent = '🎉 やったね！「1」を完成させたよ！';
+          document.getElementById('firstGoal').classList.add('done');
+          sfxBig();
+          showCelebrate('🎉 「1」が完成！すごい！ 🎉\nこのままエンドレスで続けよう！', 2600);
+        } else {
+          sfxBig();
+        }
+      }
+    }
+  });
+}
+
+/* ===== 位取り表・合計・スコア更新 ===== */
+function updateStats(){
+  const counts = {0:0,1:0,2:0,3:0};
+  pieces.forEach(p=>{ counts[p.levelIdx]++; });
+  document.getElementById('cnt0001').textContent = counts[0];
+  document.getElementById('cnt001').textContent = counts[1];
+  document.getElementById('cnt01').textContent = counts[2];
+  document.getElementById('cnt1').textContent = counts[3];
+
+  const sum = counts[0]*0.001 + counts[1]*0.01 + counts[2]*0.1 + counts[3]*1;
+  document.getElementById('sumVal').textContent = sum.toFixed(3);
+
+  score = counts[0]*LEVELS[0].score + counts[1]*LEVELS[1].score + counts[2]*LEVELS[2].score + counts[3]*LEVELS[3].score;
+  document.getElementById('scoreVal').textContent = score;
+}
+/* ===== ゲームオーバー判定 ===== */
+function checkGameOver(){
+  if(gameOver) return;
+  for(const p of pieces){
+    if(p.position.y - p.circleRadius < 0 && Math.abs(p.velocity.y) < 0.5){
+      triggerGameOver();
+      return;
+    }
+  }
+}
+function triggerGameOver(){
+  gameOver = true;
+  document.getElementById('finalScore').textContent = `スコア: ${score}`;
+  document.getElementById('gameOverScreen').classList.add('show');
+}
+
+function resetGame(){
+  pieces.forEach(p=> World.remove(engine.world, p));
+  pieces = [];
+  groups = {};
+  particles = [];
+  popAnimations = [];
+  score = 0;
+  gameOver = false;
+  firstOneAchieved = false;
+  document.getElementById('firstGoal').textContent = '🎯 目標: 「1」を1個つくろう！';
+  document.getElementById('firstGoal').classList.remove('done');
+  document.getElementById('gameOverScreen').classList.remove('show');
+  currentLevel = 0;
+  pickNext();
+  spawnFalling();
+}
+document.getElementById('retryBtn').addEventListener('click', resetGame);
+document.getElementById('restartBtn').addEventListener('click', resetGame);
+document.getElementById('mute').addEventListener('click', (e)=>{
+  muted = !muted;
+  e.target.textContent = muted ? '🔇 音を出す' : '🔊 音を消す';
+});
+
+/* ===== 描画ループ ===== */
+function drawArm(){
+  const lv = LEVELS[currentLevel];
+  ctx.save();
+  ctx.globalAlpha = 0.85;
+  ctx.fillStyle = lv.color;
+  ctx.beginPath();
+  const ax = Math.max(lv.radius+WALL_T, Math.min(CANVAS_W-lv.radius-WALL_T, armX || CANVAS_W/2));
+  ctx.arc(ax, lv.radius+10, lv.radius, 0, Math.PI*2);
+  ctx.fill();
+  ctx.strokeStyle = '#fff';
+  ctx.lineWidth = 3;
+  ctx.stroke();
+  ctx.fillStyle = '#fff';
+  ctx.font = `bold ${Math.max(12, lv.radius*0.5)}px sans-serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(lv.label, ax, lv.radius+10);
+  ctx.restore();
+  // guide line
+  ctx.save();
+  ctx.strokeStyle = 'rgba(150,150,150,0.4)';
+  ctx.setLineDash([6,6]);
+  ctx.beginPath();
+  ctx.moveTo(ax, lv.radius*2+12);
+  ctx.lineTo(ax, CANVAS_H);
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawPieces(){
+  pieces.forEach(p=>{
+    const lv = LEVELS[p.levelIdx];
+    let scale = 1;
+    const pop = popAnimations.find(a=>a.pieceId === p.pieceId);
+    if(pop){
+      pop.t += 0.06;
+      scale = 1 + Math.sin(Math.min(pop.t,1)*Math.PI) * 0.35;
+      if(pop.t >= 1) popAnimations = popAnimations.filter(a=>a!==pop);
+    }
+    ctx.save();
+    ctx.translate(p.position.x, p.position.y);
+    ctx.rotate(p.angle);
+    ctx.scale(scale, scale);
+    ctx.fillStyle = lv.color;
+    ctx.beginPath();
+    ctx.arc(0,0,lv.radius,0,Math.PI*2);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(0,0,0,0.15)';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    ctx.restore();
+
+    // ラベルは回転無視で描画
+    ctx.save();
+    ctx.fillStyle = '#fff';
+    ctx.font = `bold ${Math.max(11, lv.radius*0.42)}px sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(lv.label, p.position.x, p.position.y);
+    ctx.restore();
+
+    // グループカウント表示
+    if(p.groupId && groups[p.groupId]){
+      const g = groups[p.groupId];
+      ctx.save();
+      ctx.fillStyle = '#333';
+      ctx.font = `bold 11px sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.fillText(`${g.count}/${MERGE_COUNT}`, p.position.x, p.position.y - lv.radius - 8);
+      ctx.restore();
+    }
+  });
+}
+
+function render(){
+  ctx.clearRect(0,0,CANVAS_W,CANVAS_H);
+  drawArm();
+  drawPieces();
+  drawParticles();
+}
+
+function loop(){
+  if(!gameOver){
+    Engine.update(engine, 1000/60);
+    processMergeCompletions();
+    updateParticles();
+    updateStats();
+    checkGameOver();
+  } else {
+    updateParticles();
+  }
+  render();
+  requestAnimationFrame(loop);
+}
+loop();
+
+})();
+</script>
+</body>
+</html>
