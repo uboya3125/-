@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
-import { generateComment } from "@/lib/anthropic";
+import { generateCommentFromTemplate } from "@/lib/templateGenerator";
 
 const RECENT_EXPRESSIONS_LIMIT = 5;
 
@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
 
   const { data: unit, error: unitError } = await supabase
     .from("units")
-    .select("name, grade, perspectives, subjects(name)")
+    .select("name, grade, keywords(text, perspective)")
     .eq("id", unitId)
     .single();
 
@@ -48,14 +48,14 @@ export async function POST(request: NextRequest) {
     .map((c) => c.edited_text ?? c.generated_text)
     .filter((t): t is string => Boolean(t));
 
-  const subjectName = (unit.subjects as unknown as { name: string } | null)?.name ?? "算数";
+  const keywordPerspectives = keywords.map(
+    (k) => unit.keywords?.find((uk) => uk.text === k)?.perspective
+  );
+  const perspectives = keywordPerspectives.filter((p): p is string => Boolean(p));
 
-  const text = await generateComment({
-    grade: unit.grade,
-    subject: subjectName,
-    unitName: unit.name,
-    perspectives: unit.perspectives ?? [],
+  const text = generateCommentFromTemplate({
     keywords,
+    perspectives,
     length,
     recentExpressions,
   });
