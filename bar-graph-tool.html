@@ -1,0 +1,796 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<title>ぼうグラフ がくしゅうツール</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: 'Noto Sans JP', sans-serif;
+    background: #f4f6f8;
+    color: #222;
+  }
+  ruby rt {
+    font-size: 0.55em;
+    color: #555;
+  }
+  button {
+    font-family: inherit;
+    cursor: pointer;
+    min-height: 44px;
+    min-width: 44px;
+  }
+  #root { padding: 12px; max-width: 1100px; margin: 0 auto; }
+
+  .tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+  .tab-btn {
+    flex: 1;
+    padding: 14px 8px;
+    font-size: 18px;
+    font-weight: 700;
+    border: 2px solid #4a7fb5;
+    background: #fff;
+    color: #4a7fb5;
+    border-radius: 10px 10px 0 0;
+    transition: all 0.15s;
+  }
+  .tab-btn.active {
+    background: #4a7fb5;
+    color: #fff;
+  }
+
+  .panel {
+    background: #fff;
+    border-radius: 0 10px 10px 10px;
+    padding: 16px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+  }
+
+  /* ---- Form (mode1) ---- */
+  .form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+  .form-row { display: flex; flex-direction: column; gap: 4px; }
+  .form-row label { font-weight: 700; font-size: 14px; }
+  .form-row input, .form-row select {
+    padding: 8px;
+    font-size: 16px;
+    border: 2px solid #ccc;
+    border-radius: 6px;
+  }
+  .item-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 6px;
+    align-items: center;
+  }
+  .item-row input { flex: 1; padding: 8px; font-size: 15px; border: 2px solid #ccc; border-radius: 6px; }
+  .item-row input.val { max-width: 90px; }
+
+  .btn {
+    background: #4a7fb5;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 10px 18px;
+    font-size: 16px;
+    font-weight: 700;
+  }
+  .btn.secondary { background: #888; }
+  .btn.green { background: #3a9650; }
+  .btn:disabled { background: #bbb; cursor: default; }
+
+  .graph-wrap {
+    text-align: center;
+    margin-top: 10px;
+    overflow-x: auto;
+  }
+
+  /* ---- Quiz mode ---- */
+  .quiz-layout {
+    display: flex;
+    gap: 16px;
+  }
+  .quiz-main { flex: 1; min-width: 0; }
+  .quiz-side {
+    width: 160px;
+    flex-shrink: 0;
+  }
+  .thumb-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+  }
+  .thumb-btn {
+    position: relative;
+    border: 2px solid #ccc;
+    border-radius: 8px;
+    background: #fafafa;
+    font-size: 15px;
+    font-weight: 700;
+    padding: 8px 2px;
+  }
+  .thumb-btn.current { border-color: #4a7fb5; background: #e3f0fc; }
+  .thumb-btn .check { position: absolute; top: -6px; right: -6px; font-size: 16px; }
+
+  .qnav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: 14px 0;
+  }
+  .qcounter { font-weight: 700; font-size: 18px; }
+
+  .question-box {
+    background: #f0f7ff;
+    border: 2px solid #bcd8f0;
+    border-radius: 10px;
+    padding: 14px;
+    margin-top: 14px;
+  }
+  .question-text { font-size: 17px; font-weight: 700; margin-bottom: 10px; }
+  .choice-btns { display: flex; flex-wrap: wrap; gap: 8px; }
+  .choice-btn {
+    border: 2px solid #4a7fb5;
+    background: #fff;
+    color: #4a7fb5;
+    border-radius: 8px;
+    padding: 10px 16px;
+    font-size: 16px;
+    font-weight: 700;
+  }
+  .choice-btn.selected { background: #4a7fb5; color: #fff; }
+  .num-input-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .num-input-row input {
+    width: 90px;
+    padding: 8px;
+    font-size: 18px;
+    border: 2px solid #ccc;
+    border-radius: 6px;
+  }
+
+  .feedback {
+    margin-top: 10px;
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: 16px;
+  }
+  .feedback.correct { background: #d8f5dc; color: #1f7a32; border: 2px solid #3a9650; }
+  .feedback.wrong { background: #fbdada; color: #a32424; border: 2px solid #c05050; }
+
+  .all-correct-banner {
+    text-align: center;
+    font-size: 26px;
+    font-weight: 900;
+    color: #d96b00;
+    animation: pop 0.6s ease;
+    margin: 16px 0;
+  }
+  @keyframes pop {
+    0% { transform: scale(0.5); opacity: 0; }
+    60% { transform: scale(1.15); opacity: 1; }
+    100% { transform: scale(1); }
+  }
+
+  .drag-handle {
+    cursor: ns-resize;
+  }
+
+  @media print {
+    .tabs, .form-panel, .qnav, .quiz-side, .question-box, .no-print { display: none !important; }
+    body { background: #fff; }
+    .panel { box-shadow: none; }
+  }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel" data-presets="env,react">
+const { useState, useMemo, useRef, useEffect } = React;
+
+/* ----------------------------------------------------------------
+   ふりがな辞書とruby補助
+---------------------------------------------------------------- */
+const RUBY_MAP = [
+  ["休み時間","<ruby>休<rt>やす</rt></ruby>み<ruby>時間<rt>じかん</rt></ruby>"],
+  ["じゅ業中","じゅ<ruby>業中<rt>ぎょうちゅう</rt></ruby>"],
+  ["始業前・放か後","<ruby>始業前<rt>しぎょうまえ</rt></ruby>・<ruby>放課後<rt>ほうかご</rt></ruby>"],
+  ["そうじ時間","そうじ<ruby>時間<rt>じかん</rt></ruby>"],
+  ["けがをした時間と人数","けがをした<ruby>時間<rt>じかん</rt></ruby>と<ruby>人数<rt>にんずう</rt></ruby>"],
+  ["好きな給食メニュー","<ruby>好<rt>す</rt></ruby>きな<ruby>給食<rt>きゅうしょく</rt></ruby>メニュー"],
+  ["カレーライス","カレーライス"],
+  ["唐揚げ","<ruby>唐揚<rt>からあ</rt></ruby>げ"],
+  ["図書室で借りた本の数（月別）","<ruby>図書室<rt>としょしつ</rt></ruby>で<ruby>借<rt>か</rt></ruby>りた<ruby>本<rt>ほん</rt></ruby>の<ruby>数<rt>かず</rt></ruby>（<ruby>月別<rt>つきべつ</rt></ruby>）"],
+  ["4月","4<ruby>月<rt>がつ</rt></ruby>"],
+  ["5月","5<ruby>月<rt>がつ</rt></ruby>"],
+  ["6月","6<ruby>月<rt>がつ</rt></ruby>"],
+  ["7月","7<ruby>月<rt>がつ</rt></ruby>"],
+  ["動物園で一番好きな動物","<ruby>動物園<rt>どうぶつえん</rt></ruby>で<ruby>一番<rt>いちばん</rt></ruby><ruby>好<rt>す</rt></ruby>きな<ruby>動物<rt>どうぶつ</rt></ruby>"],
+  ["ライオン","ライオン"],["キリン","キリン"],["ゾウ","ゾウ"],["ペンギン","ペンギン"],["パンダ","パンダ"],
+  ["集めたペットボトルキャップの数","<ruby>集<rt>あつ</rt></ruby>めたペットボトルキャップの<ruby>数<rt>かず</rt></ruby>"],
+  ["1組","1<ruby>組<rt>くみ</rt></ruby>"],["2組","2<ruby>組<rt>くみ</rt></ruby>"],["3組","3<ruby>組<rt>くみ</rt></ruby>"],["4組","4<ruby>組<rt>くみ</rt></ruby>"],
+  ["1週間に読んだ本の数","1<ruby>週間<rt>しゅうかん</rt></ruby>に<ruby>読<rt>よ</rt></ruby>んだ<ruby>本<rt>ほん</rt></ruby>の<ruby>数<rt>かず</rt></ruby>"],
+  ["月","<ruby>月<rt>げつ</rt></ruby>"],["火","<ruby>火<rt>か</rt></ruby>"],["水","<ruby>水<rt>すい</rt></ruby>"],["木","<ruby>木<rt>もく</rt></ruby>"],["金","<ruby>金<rt>きん</rt></ruby>"],
+  ["公園で見かけた鳥の種類と数","<ruby>公園<rt>こうえん</rt></ruby>で<ruby>見<rt>み</rt></ruby>かけた<ruby>鳥<rt>とり</rt></ruby>の<ruby>種類<rt>しゅるい</rt></ruby>と<ruby>数<rt>かず</rt></ruby>"],
+  ["スズメ","スズメ"],["カラス","カラス"],["ハト","ハト"],["ムクドリ","ムクドリ"],
+  ["運動会の得点（種目別）","<ruby>運動会<rt>うんどうかい</rt></ruby>の<ruby>得点<rt>とくてん</rt></ruby>（<ruby>種目別<rt>しゅもくべつ</rt></ruby>）"],
+  ["玉入れ","<ruby>玉入<rt>たまい</rt></ruby>れ"],["綱引き","<ruby>綱引<rt>つなひ</rt></ruby>き"],["リレー","リレー"],["ダンス","ダンス"],
+  ["朝ごはんに食べたもの","<ruby>朝<rt>あさ</rt></ruby>ごはんに<ruby>食<rt>た</rt></ruby>べたもの"],
+  ["ご飯","ご<ruby>飯<rt>はん</rt></ruby>"],["パン","パン"],["その他","その<ruby>他<rt>た</rt></ruby>"],
+  ["育てた野菜の収かく量","<ruby>育<rt>そだ</rt></ruby>てた<ruby>野菜<rt>やさい</rt></ruby>の<ruby>収<rt>しゅう</rt></ruby>かく<ruby>量<rt>りょう</rt></ruby>"],
+  ["トマト","トマト"],["キュウリ","キュウリ"],["ナス","ナス"],["ピーマン","ピーマン"],
+  ["学校に来る交通手段","<ruby>学校<rt>がっこう</rt></ruby>に<ruby>来<rt>く</rt></ruby>る<ruby>交通手段<rt>こうつうしゅだん</rt></ruby>"],
+  ["徒歩","<ruby>徒歩<rt>とほ</rt></ruby>"],["自転車","<ruby>自転車<rt>じてんしゃ</rt></ruby>"],["バス","バス"],
+  ["天気の記録（4月）","<ruby>天気<rt>てんき</rt></ruby>の<ruby>記録<rt>きろく</rt></ruby>（4<ruby>月<rt>がつ</rt></ruby>）"],
+  ["晴れ","<ruby>晴<rt>は</rt></ruby>れ"],["曇り","<ruby>曇<rt>くも</rt></ruby>り"],["雨","<ruby>雨<rt>あめ</rt></ruby>"],
+  ["人","<ruby>人<rt>にん</rt></ruby>"],["個","<ruby>個<rt>こ</rt></ruby>"],["冊","<ruby>冊<rt>さつ</rt></ruby>"],
+  ["さつ","さつ"],["羽","<ruby>羽<rt>わ</rt></ruby>"],["点","<ruby>点<rt>てん</rt></ruby>"],["日","<ruby>日<rt>にち</rt></ruby>"],
+  ["一番多いのはどれですか","<ruby>一番<rt>いちばん</rt></ruby><ruby>多<rt>おお</rt></ruby>いのはどれですか"],
+  ["一番少ないのはどれですか","<ruby>一番<rt>いちばん</rt></ruby><ruby>少<rt>すく</rt></ruby>ないのはどれですか"],
+  ["は何ですか","は<ruby>何<rt>なん</rt></ruby>ですか"],
+  ["の差は何ですか","の<ruby>差<rt>さ</rt></ruby>は<ruby>何<rt>なん</rt></ruby>ですか"],
+  ["合計は何ですか","<ruby>合計<rt>ごうけい</rt></ruby>は<ruby>何<rt>なん</rt></ruby>ですか"],
+  ["答え合わせ","<ruby>答<rt>こた</rt></ruby>え<ruby>合<rt>あ</rt></ruby>わせ"],
+  ["答え","<ruby>答<rt>こた</rt></ruby>え"],
+  ["ヒント","ヒント"],
+  ["前の問題","<ruby>前<rt>まえ</rt></ruby>の<ruby>問題<rt>もんだい</rt></ruby>"],
+  ["次の問題","<ruby>次<rt>つぎ</rt></ruby>の<ruby>問題<rt>もんだい</rt></ruby>"],
+  ["せいかい","せいかい"],
+  ["もう一度かんがえてみよう","もう<ruby>一度<rt>いちど</rt></ruby>かんがえてみよう"],
+  ["ぜんぶせいかい","ぜんぶせいかい"],
+  ["グラフを作る","グラフを<ruby>作<rt>つく</rt></ruby>る"],
+  ["問題を解く","<ruby>問題<rt>もんだい</rt></ruby>を<ruby>解<rt>と</rt></ruby>く"],
+  ["タイトル","タイトル"],
+  ["単位","<ruby>単位<rt>たんい</rt></ruby>"],
+  ["一目盛りの数","<ruby>一目盛<rt>いちめも</rt></ruby>りの<ruby>数<rt>かず</rt></ruby>"],
+  ["最大目盛り数","<ruby>最大<rt>さいだい</rt></ruby><ruby>目盛<rt>めも</rt></ruby>り<ruby>数<rt>かず</rt></ruby>"],
+  ["項目数","<ruby>項目数<rt>こうもくすう</rt></ruby>"],
+  ["項目名","<ruby>項目名<rt>こうもくめい</rt></ruby>"],
+  ["値","<ruby>値<rt>あたい</rt></ruby>"],
+  ["印刷する","<ruby>印刷<rt>いんさつ</rt></ruby>する"],
+  ["グラフを完成させよう","グラフを<ruby>完成<rt>かんせい</rt></ruby>させよう"],
+  ["ぼうをひいてグラフを完成させましょう","ぼうをひいてグラフを<ruby>完成<rt>かんせい</rt></ruby>させましょう"],
+];
+function rb(text) {
+  let s = text;
+  // sort by length desc to avoid partial overshadow
+  const sorted = [...RUBY_MAP].sort((a,b)=>b[0].length-a[0].length);
+  for (const [plain, ruby] of sorted) {
+    if (s.includes(plain)) s = s.split(plain).join(ruby);
+  }
+  return <span dangerouslySetInnerHTML={{__html: s}} />;
+}
+
+/* ----------------------------------------------------------------
+   棒グラフ SVG コンポーネント（教科書スタイル）
+---------------------------------------------------------------- */
+let patternIdCounter = 0;
+
+function BarGraph({ title, unit, tickStep, maxTick, items, mode="display", onDragValue, highlightIndex, userValues }) {
+  const patId = useMemo(()=>`dotpat-${patternIdCounter++}`, []);
+  const W = 560;
+  const H = 420;
+  const marginLeft = 60;
+  const marginTop = 56;
+  const marginBottom = 90;
+  const marginRight = 24;
+  const plotW = W - marginLeft - marginRight;
+  const plotH = H - marginTop - marginBottom;
+
+  const nTicks = Math.round(maxTick / tickStep);
+  const barCount = items.length;
+  const barAreaW = plotW / barCount;
+  const barW = barAreaW * 0.55;
+
+  const valueToY = (v) => marginTop + plotH - (v / maxTick) * plotH;
+
+  const gridLines = [];
+  for (let i = 0; i <= nTicks; i++) {
+    const v = i * tickStep;
+    const y = valueToY(v);
+    gridLines.push(
+      <line key={"h"+i} x1={marginLeft} y1={y} x2={marginLeft+plotW} y2={y} stroke="#89bdd3" strokeWidth="0.5" />
+    );
+  }
+  // vertical fine grid (subdivide bar areas)
+  const vDivisions = barCount * 4;
+  for (let i = 0; i <= vDivisions; i++) {
+    const x = marginLeft + (plotW / vDivisions) * i;
+    gridLines.push(
+      <line key={"v"+i} x1={x} y1={marginTop} x2={x} y2={marginTop+plotH} stroke="#89bdd3" strokeWidth="0.5" />
+    );
+  }
+
+  const yLabels = [];
+  for (let i = 0; i <= nTicks; i++) {
+    const v = i * tickStep;
+    const y = valueToY(v);
+    yLabels.push(
+      <text key={i} x={marginLeft - 10} y={y+4} textAnchor="end" fontSize="13" fontWeight="700" fill="#222">{v}</text>
+    );
+  }
+
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} width={Math.min(W, 680)} style={{maxWidth:"100%", background:"#fff"}}>
+      <defs>
+        <pattern id={patId} width="8" height="8" patternUnits="userSpaceOnUse">
+          <rect width="8" height="8" fill="#e8a0a0" />
+          <circle cx="2" cy="2" r="1.3" fill="#c05050" />
+          <circle cx="6" cy="6" r="1.3" fill="#c05050" />
+        </pattern>
+      </defs>
+
+      {/* plot background */}
+      <rect x={marginLeft} y={marginTop} width={plotW} height={plotH} fill="#b0d8f0" />
+      {gridLines}
+
+      {/* title */}
+      <text x={W/2} y={26} textAnchor="middle" fontSize="20" fontWeight="900" fontFamily="'Noto Sans JP',sans-serif">{title}</text>
+
+      {/* unit label top-left of y axis */}
+      <text x={marginLeft - 4} y={marginTop - 14} textAnchor="start" fontSize="13" fontWeight="700">（{unit}）</text>
+
+      {yLabels}
+
+      {/* bars */}
+      {items.map((item, i) => {
+        const v = mode === "build" ? (userValues ? userValues[i] : 0) : item.value;
+        const x = marginLeft + barAreaW * i + (barAreaW - barW)/2;
+        const y = valueToY(v);
+        const h = marginTop + plotH - y;
+        const isHL = highlightIndex === i;
+        return (
+          <g key={i}>
+            <rect
+              x={x} y={y} width={barW} height={h}
+              fill={`url(#${patId})`}
+              stroke={isHL ? "#ff9900" : "black"}
+              strokeWidth={isHL ? 3.5 : 1.5}
+            />
+            {mode === "build" && (
+              <rect
+                className="drag-handle"
+                x={x - 6} y={y - 14} width={barW + 12} height={20}
+                fill={isHL ? "rgba(255,153,0,0.35)" : "rgba(0,0,0,0.001)"}
+                onMouseDown={(e) => startDrag(e)}
+                onTouchStart={(e) => startDrag(e)}
+              />
+            )}
+            {mode !== "build" && (
+              <text x={x+barW/2} y={y-6} textAnchor="middle" fontSize="13" fontWeight="700">{v}</text>
+            )}
+            {mode === "build" && (
+              <text x={x+barW/2} y={y-18} textAnchor="middle" fontSize="13" fontWeight="700" fill="#a32424">{v}</text>
+            )}
+            <text
+              x={x + barW/2} y={marginTop + plotH + 14}
+              textAnchor="start"
+              fontSize="13" fontWeight="700"
+              style={{writingMode:"vertical-rl"}}
+            >{item.label}</text>
+          </g>
+        );
+
+        function startDrag(e) {
+          e.preventDefault();
+          const svgEl = e.target.ownerSVGElement;
+          const move = (ev) => {
+            const point = getSvgPoint(svgEl, ev);
+            let newV = ((marginTop + plotH - point.y) / plotH) * maxTick;
+            newV = Math.max(0, Math.min(maxTick, newV));
+            newV = Math.round(newV / tickStep) * tickStep;
+            onDragValue && onDragValue(i, newV);
+          };
+          const up = () => {
+            window.removeEventListener("mousemove", move);
+            window.removeEventListener("mouseup", up);
+            window.removeEventListener("touchmove", move);
+            window.removeEventListener("touchend", up);
+          };
+          window.addEventListener("mousemove", move);
+          window.addEventListener("mouseup", up);
+          window.addEventListener("touchmove", move, {passive:false});
+          window.addEventListener("touchend", up);
+        }
+      })}
+
+      {/* axes */}
+      <line x1={marginLeft} y1={marginTop} x2={marginLeft} y2={marginTop+plotH} stroke="black" strokeWidth="2" />
+      <line x1={marginLeft} y1={marginTop+plotH} x2={marginLeft+plotW} y2={marginTop+plotH} stroke="black" strokeWidth="2" />
+    </svg>
+  );
+}
+
+function getSvgPoint(svg, evt) {
+  const rect = svg.getBoundingClientRect();
+  const clientX = evt.touches ? evt.touches[0].clientX : evt.clientX;
+  const clientY = evt.touches ? evt.touches[0].clientY : evt.clientY;
+  const vb = svg.viewBox.baseVal;
+  const x = ((clientX - rect.left) / rect.width) * vb.width + vb.x;
+  const y = ((clientY - rect.top) / rect.height) * vb.height + vb.y;
+  return { x, y };
+}
+
+/* ----------------------------------------------------------------
+   モード1：グラフ作成
+---------------------------------------------------------------- */
+function GraphBuilder() {
+  const [title, setTitle] = useState("すきなどうぶつ");
+  const [unit, setUnit] = useState("人");
+  const [tickStep, setTickStep] = useState(2);
+  const [maxTick, setMaxTick] = useState(10);
+  const [itemCount, setItemCount] = useState(4);
+  const [items, setItems] = useState([
+    {label:"イヌ", value:5},
+    {label:"ネコ", value:8},
+    {label:"ウサギ", value:3},
+    {label:"トリ", value:2},
+  ]);
+
+  const updateItemCount = (n) => {
+    n = Math.max(2, Math.min(6, n));
+    setItemCount(n);
+    const newItems = [...items];
+    while (newItems.length < n) newItems.push({label:`こうもく${newItems.length+1}`, value:1});
+    while (newItems.length > n) newItems.pop();
+    setItems(newItems);
+  };
+
+  const updateItem = (i, field, val) => {
+    const newItems = items.map((it, idx) => idx===i ? {...it, [field]: field==="value" ? Number(val)||0 : val} : it);
+    setItems(newItems);
+  };
+
+  return (
+    <div className="panel">
+      <div className="form-panel">
+        <div className="form-grid">
+          <div className="form-row">
+            <label>{rb("タイトル")}</label>
+            <input value={title} onChange={e=>setTitle(e.target.value)} />
+          </div>
+          <div className="form-row">
+            <label>{rb("単位")}</label>
+            <input value={unit} onChange={e=>setUnit(e.target.value)} />
+          </div>
+          <div className="form-row">
+            <label>{rb("一目盛りの数")}</label>
+            <select value={tickStep} onChange={e=>setTickStep(Number(e.target.value))}>
+              {[1,2,5,10].map(v=><option key={v} value={v}>{v}</option>)}
+            </select>
+          </div>
+          <div className="form-row">
+            <label>{rb("最大目盛り数")}</label>
+            <input type="number" min="5" max="20" value={maxTick} onChange={e=>setMaxTick(Number(e.target.value))} />
+          </div>
+          <div className="form-row">
+            <label>{rb("項目数")}</label>
+            <input type="number" min="2" max="6" value={itemCount} onChange={e=>updateItemCount(Number(e.target.value))} />
+          </div>
+        </div>
+
+        {items.map((it, i) => (
+          <div className="item-row" key={i}>
+            <span style={{fontWeight:700}}>{i+1}.</span>
+            <input placeholder="こうもく名" value={it.label} onChange={e=>updateItem(i,"label",e.target.value)} />
+            <input className="val" type="number" value={it.value} onChange={e=>updateItem(i,"value",e.target.value)} />
+            <span>{unit}</span>
+          </div>
+        ))}
+
+        <div style={{marginTop:10}}>
+          <button className="btn no-print" onClick={()=>window.print()}>🖨 {rb("印刷する")}</button>
+        </div>
+      </div>
+
+      <div className="graph-wrap">
+        <BarGraph
+          title={title}
+          unit={unit}
+          tickStep={tickStep}
+          maxTick={Math.max(maxTick, Math.max(...items.map(i=>i.value), 1))}
+          items={items}
+        />
+      </div>
+    </div>
+  );
+}
+
+/* ----------------------------------------------------------------
+   問題データ
+---------------------------------------------------------------- */
+function buildDataset(title, unit, tickStep, maxTick, itemDefs) {
+  return {
+    title, unit, tickStep, maxTick,
+    items: itemDefs.map(([label,value]) => ({label, value})),
+  };
+}
+
+const DATASETS = [
+  buildDataset("けがをした時間と人数","人",1,15,[["休み時間",13],["じゅ業中",10],["始業前・放か後",7],["そうじ時間",3]]),
+  buildDataset("好きな給食メニュー","人",1,15,[["カレーライス",15],["ラーメン",10],["唐揚げ",12],["スパゲティ",8],["その他",5]]),
+  buildDataset("図書室で借りた本の数（月別）","冊",5,40,[["4月",20],["5月",35],["6月",25],["7月",40]]),
+  buildDataset("動物園で一番好きな動物","人",2,14,[["ライオン",8],["キリン",12],["ゾウ",10],["ペンギン",6],["パンダ",14]]),
+  buildDataset("集めたペットボトルキャップの数","個",5,50,[["1組",45],["2組",30],["3組",50],["4組",35]]),
+  buildDataset("1週間に読んだ本の数","さつ",1,5,[["月",2],["火",0],["水",3],["木",1],["金",4]]),
+  buildDataset("公園で見かけた鳥の種類と数","羽",1,12,[["スズメ",12],["カラス",5],["ハト",9],["ムクドリ",3]]),
+  buildDataset("運動会の得点（種目別）","点",5,30,[["玉入れ",20],["綱引き",10],["リレー",30],["ダンス",15]]),
+  buildDataset("朝ごはんに食べたもの","人",2,18,[["ご飯",18],["パン",12],["その他",5]]),
+  buildDataset("育てた野菜の収かく量","個",5,40,[["トマト",25],["キュウリ",40],["ナス",15],["ピーマン",20]]),
+  buildDataset("学校に来る交通手段","人",2,22,[["徒歩",22],["自転車",8],["バス",5],["その他",3]]),
+  buildDataset("天気の記録（4月）","日",2,12,[["晴れ",12],["曇り",10],["雨",8]]),
+];
+
+function maxItem(items) {
+  return items.reduce((a,b)=> b.value>a.value? b : a, items[0]);
+}
+function minItem(items) {
+  return items.reduce((a,b)=> b.value<a.value? b : a, items[0]);
+}
+
+// Build a list of questions: alternate read-type and build-type using the datasets
+function buildQuestions() {
+  const qs = [];
+  DATASETS.forEach((ds, idx) => {
+    const mx = maxItem(ds.items);
+    const mn = minItem(ds.items);
+    const total = ds.items.reduce((s,i)=>s+i.value,0);
+    const a = ds.items[0], b = ds.items[1];
+
+    if (idx % 2 === 0) {
+      // read question: max
+      qs.push({
+        type: "read-choice",
+        dataset: ds,
+        question: `${ds.title}で、一番多いのはどれですか`,
+        choices: ds.items.map(i=>i.label),
+        answer: mx.label,
+      });
+    } else {
+      // read question: min
+      qs.push({
+        type: "read-choice",
+        dataset: ds,
+        question: `${ds.title}で、一番少ないのはどれですか`,
+        choices: ds.items.map(i=>i.label),
+        answer: mn.label,
+      });
+    }
+
+    qs.push({
+      type: "read-number",
+      dataset: ds,
+      question: `${a.label}は何${ds.unit}ですか`,
+      answer: a.value,
+      highlightLabel: a.label,
+    });
+
+    qs.push({
+      type: "read-number",
+      dataset: ds,
+      question: `${a.label}と${b.label}の差は何${ds.unit}ですか`,
+      answer: Math.abs(a.value - b.value),
+      highlightLabel: null,
+    });
+
+    if (idx % 3 === 0) {
+      qs.push({
+        type: "read-number",
+        dataset: ds,
+        question: `合計は何${ds.unit}ですか`,
+        answer: total,
+        highlightLabel: null,
+      });
+    }
+
+    if (idx % 2 === 1) {
+      qs.push({
+        type: "build",
+        dataset: ds,
+        question: `ぼうをひいてグラフを完成させましょう`,
+      });
+    }
+  });
+  return qs;
+}
+
+const QUESTIONS = buildQuestions();
+
+/* ----------------------------------------------------------------
+   モード2：問題を解く
+---------------------------------------------------------------- */
+function QuizMode() {
+  const [qIndex, setQIndex] = useState(0);
+  const [answers, setAnswers] = useState({}); // index -> {status: 'correct'|'wrong', value}
+  const [showAnswer, setShowAnswer] = useState({});
+  const [hintIndex, setHintIndex] = useState(null);
+  const [selectedChoice, setSelectedChoice] = useState(null);
+  const [numInput, setNumInput] = useState("");
+  const [buildValues, setBuildValues] = useState({});
+
+  const q = QUESTIONS[qIndex];
+  const correctCount = Object.values(answers).filter(a=>a.status==="correct").length;
+  const allCorrect = correctCount === QUESTIONS.length;
+
+  useEffect(() => {
+    setSelectedChoice(null);
+    setNumInput("");
+    setHintIndex(null);
+    if (q.type === "build" && !buildValues[qIndex]) {
+      setBuildValues(prev => ({...prev, [qIndex]: q.dataset.items.map(()=>0)}));
+    }
+  }, [qIndex]);
+
+  const setBV = (i, v) => {
+    setBuildValues(prev => {
+      const arr = [...(prev[qIndex] || q.dataset.items.map(()=>0))];
+      arr[i] = v;
+      return {...prev, [qIndex]: arr};
+    });
+  };
+
+  const submitChoice = (choice) => {
+    setSelectedChoice(choice);
+    const correct = choice === q.answer;
+    setAnswers(prev => ({...prev, [qIndex]: {status: correct?"correct":"wrong", value: choice}}));
+  };
+
+  const submitNumber = () => {
+    const v = Number(numInput);
+    const correct = v === q.answer;
+    setAnswers(prev => ({...prev, [qIndex]: {status: correct?"correct":"wrong", value: v}}));
+  };
+
+  const submitBuild = () => {
+    const vals = buildValues[qIndex] || [];
+    const correct = q.dataset.items.every((it,i)=> vals[i] === it.value);
+    setAnswers(prev => ({...prev, [qIndex]: {status: correct?"correct":"wrong"}}));
+  };
+
+  const showHint = () => {
+    if (q.highlightLabel) {
+      const idx = q.dataset.items.findIndex(it=>it.label===q.highlightLabel);
+      setHintIndex(idx);
+    } else if (q.type === "read-choice") {
+      setHintIndex(-1); // highlight all - no-op simplification
+    } else {
+      setHintIndex(-1);
+    }
+  };
+
+  const current = answers[qIndex];
+
+  return (
+    <div className="panel">
+      {allCorrect && (
+        <div className="all-correct-banner">🎉 {rb("ぜんぶせいかい")}！🎉</div>
+      )}
+
+      <div className="quiz-layout">
+        <div className="quiz-main">
+          <div className="qnav">
+            <button className="btn secondary" disabled={qIndex===0} onClick={()=>setQIndex(qIndex-1)}>← {rb("前の問題")}</button>
+            <div className="qcounter">{qIndex+1} / {QUESTIONS.length}</div>
+            <button className="btn secondary" disabled={qIndex===QUESTIONS.length-1} onClick={()=>setQIndex(qIndex+1)}>{rb("次の問題")} →</button>
+          </div>
+
+          <div className="graph-wrap">
+            <BarGraph
+              title={q.dataset.title}
+              unit={q.dataset.unit}
+              tickStep={q.dataset.tickStep}
+              maxTick={q.dataset.maxTick}
+              items={q.dataset.items}
+              mode={q.type === "build" ? "build" : "display"}
+              userValues={buildValues[qIndex]}
+              highlightIndex={hintIndex >= 0 ? hintIndex : null}
+              onDragValue={(i,v) => setBV(i,v)}
+            />
+          </div>
+
+          <div className="question-box">
+            <div className="question-text">{rb(q.question)}</div>
+
+            {q.type === "read-choice" && (
+              <div className="choice-btns">
+                {q.choices.map(c => (
+                  <button
+                    key={c}
+                    className={"choice-btn" + (selectedChoice===c ? " selected" : "")}
+                    onClick={()=>submitChoice(c)}
+                  >{rb(c)}</button>
+                ))}
+              </div>
+            )}
+
+            {q.type === "read-number" && (
+              <div className="num-input-row">
+                <input type="number" value={numInput} onChange={e=>setNumInput(e.target.value)} />
+                <span>{q.dataset.unit}</span>
+                <button className="btn" onClick={submitNumber}>{rb("答え合わせ")}</button>
+              </div>
+            )}
+
+            {q.type === "build" && (
+              <div>
+                <button className="btn green" onClick={submitBuild}>{rb("答え合わせ")}</button>
+              </div>
+            )}
+
+            <div style={{marginTop:10, display:"flex", gap:8}}>
+              <button className="btn secondary" onClick={showHint}>💡 {rb("ヒント")}</button>
+              <button className="btn secondary" onClick={()=>setShowAnswer(prev=>({...prev,[qIndex]:true}))}>📖 {rb("答え")}</button>
+            </div>
+
+            {current && (
+              <div className={"feedback " + (current.status === "correct" ? "correct" : "wrong")}>
+                {current.status === "correct" ? `⭕ ${"せいかい"}！` : `❌ ${"もう一度かんがえてみよう"}`}
+              </div>
+            )}
+
+            {showAnswer[qIndex] && (
+              <div className="feedback correct">
+                {q.type === "read-choice" && <>{rb("答え")}: {rb(q.answer)}</>}
+                {q.type === "read-number" && <>{rb("答え")}: {q.answer} {q.dataset.unit}</>}
+                {q.type === "build" && <>{rb("答え")}: {q.dataset.items.map(i=>`${i.label}=${i.value}`).join(", ")}</>}
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="quiz-side">
+          <div style={{fontWeight:700, marginBottom:6}}>{rb("問題を解く")}</div>
+          <div className="thumb-grid">
+            {QUESTIONS.map((_, i) => (
+              <button
+                key={i}
+                className={"thumb-btn" + (i===qIndex ? " current" : "")}
+                onClick={()=>setQIndex(i)}
+              >
+                {i+1}
+                {answers[i] && answers[i].status === "correct" && <span className="check">✅</span>}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ----------------------------------------------------------------
+   App
+---------------------------------------------------------------- */
+function App() {
+  const [mode, setMode] = useState("build"); // 'build' = graph builder, 'quiz' = quiz
+
+  return (
+    <div>
+      <div className="tabs">
+        <button className={"tab-btn" + (mode==="build" ? " active" : "")} onClick={()=>setMode("build")}>📊 {rb("グラフを作る")}</button>
+        <button className={"tab-btn" + (mode==="quiz" ? " active" : "")} onClick={()=>setMode("quiz")}>✏️ {rb("問題を解く")}</button>
+      </div>
+      {mode === "build" ? <GraphBuilder /> : <QuizMode />}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+</body>
+</html>
