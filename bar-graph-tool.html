@@ -299,44 +299,62 @@ function BarGraph({ title, unit, tickStep, maxTick, items, mode="display", onDra
 
   const valueToY = (v) => marginTop + plotH - (v / maxTick) * plotH;
 
+  // ラベルを表示する目盛り幅（0,5,10,15 のように間引いて表示する）
+  const labelStep = useMemo(() => {
+    const candidates = [1,2,5,10,20,25,50,100].map(m => m * tickStep);
+    return candidates.find(c => maxTick / c <= 6) || candidates[candidates.length-1];
+  }, [tickStep, maxTick]);
+
+  const cellH = plotH / nTicks;
+  const vDivisions = Math.max(1, Math.round(plotW / cellH));
+
   const gridLines = [];
   for (let i = 0; i <= nTicks; i++) {
     const v = i * tickStep;
     const y = valueToY(v);
     gridLines.push(
-      <line key={"h"+i} x1={marginLeft} y1={y} x2={marginLeft+plotW} y2={y} stroke="#89bdd3" strokeWidth="0.5" />
+      <line key={"h"+i} x1={marginLeft} y1={y} x2={marginLeft+plotW} y2={y} stroke="#89bdd3" strokeWidth="0.6" />
     );
   }
-  // vertical fine grid (subdivide bar areas)
-  const vDivisions = barCount * 4;
   for (let i = 0; i <= vDivisions; i++) {
     const x = marginLeft + (plotW / vDivisions) * i;
     gridLines.push(
-      <line key={"v"+i} x1={x} y1={marginTop} x2={x} y2={marginTop+plotH} stroke="#89bdd3" strokeWidth="0.5" />
+      <line key={"v"+i} x1={x} y1={marginTop} x2={x} y2={marginTop+plotH} stroke="#89bdd3" strokeWidth="0.6" />
     );
   }
 
   const yLabels = [];
-  for (let i = 0; i <= nTicks; i++) {
-    const v = i * tickStep;
+  for (let v = 0; v <= maxTick; v += labelStep) {
     const y = valueToY(v);
     yLabels.push(
-      <text key={i} x={marginLeft - 10} y={y+4} textAnchor="end" fontSize="13" fontWeight="700" fill="#222">{v}</text>
+      <text key={v} x={marginLeft - 10} y={y+5} textAnchor="end" fontSize="14" fontWeight="700" fill="#222">{v}</text>
     );
+  }
+
+  function wrapLabel(label) {
+    if (label.includes("・")) {
+      const idx = label.indexOf("・");
+      return [label.slice(0, idx+1), label.slice(idx+1)];
+    }
+    if (label.length > 5) {
+      const mid = Math.ceil(label.length/2);
+      return [label.slice(0,mid), label.slice(mid)];
+    }
+    return [label];
   }
 
   return (
     <svg viewBox={`0 0 ${W} ${H}`} width={Math.min(W, 680)} style={{maxWidth:"100%", background:"#fff"}}>
       <defs>
-        <pattern id={patId} width="8" height="8" patternUnits="userSpaceOnUse">
-          <rect width="8" height="8" fill="#e8a0a0" />
-          <circle cx="2" cy="2" r="1.3" fill="#c05050" />
-          <circle cx="6" cy="6" r="1.3" fill="#c05050" />
+        <pattern id={patId} width="6" height="6" patternUnits="userSpaceOnUse">
+          <rect width="6" height="6" fill="#e8a0a0" />
+          <circle cx="1.6" cy="1.6" r="1.1" fill="#c05050" />
+          <circle cx="4.6" cy="4.6" r="1.1" fill="#c05050" />
         </pattern>
       </defs>
 
       {/* plot background */}
-      <rect x={marginLeft} y={marginTop} width={plotW} height={plotH} fill="#b0d8f0" />
+      <rect x={marginLeft} y={marginTop} width={plotW} height={plotH} fill="#ffffff" stroke="#89bdd3" strokeWidth="0.6" />
       {gridLines}
 
       {/* title */}
@@ -378,11 +396,14 @@ function BarGraph({ title, unit, tickStep, maxTick, items, mode="display", onDra
               <text x={x+barW/2} y={y-18} textAnchor="middle" fontSize="13" fontWeight="700" fill="#a32424">{v}</text>
             )}
             <text
-              x={x + barW/2} y={marginTop + plotH + 14}
-              textAnchor="start"
-              fontSize="13" fontWeight="700"
-              style={{writingMode:"vertical-rl"}}
-            >{item.label}</text>
+              x={x + barW/2} y={marginTop + plotH + 22}
+              textAnchor="middle"
+              fontSize="14" fontWeight="700"
+            >
+              {wrapLabel(item.label).map((line, li) => (
+                <tspan key={li} x={x + barW/2} dy={li===0 ? 0 : 20}>{line}</tspan>
+              ))}
+            </text>
           </g>
         );
 
