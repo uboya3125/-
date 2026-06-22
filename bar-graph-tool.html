@@ -589,7 +589,7 @@ function rb(text) {
 ---------------------------------------------------------------- */
 let patternIdCounter = 0;
 
-function BarGraph({ title, unit, tickStep, maxTick, items, mode="display", onDragValue, highlightIndex, userValues }) {
+function BarGraph({ title, unit, tickStep, maxTick, items, mode="display", onDragValue, highlightIndex, userValues, showValues=true }) {
   const patId = useMemo(()=>`dotpat-${patternIdCounter++}`, []);
   const W = 560;
   const H = 420;
@@ -603,7 +603,7 @@ function BarGraph({ title, unit, tickStep, maxTick, items, mode="display", onDra
   const nTicks = Math.round(maxTick / tickStep);
   const barCount = items.length;
   const barAreaW = plotW / barCount;
-  const barW = barAreaW * 0.55;
+  const barW = barAreaW * 0.35;
 
   const valueToY = (v) => marginTop + plotH - (v / maxTick) * plotH;
 
@@ -697,7 +697,7 @@ function BarGraph({ title, unit, tickStep, maxTick, items, mode="display", onDra
                 onTouchStart={(e) => startDrag(e)}
               />
             )}
-            {mode !== "build" && (
+            {mode !== "build" && showValues && (
               <text x={x+barW/2} y={y-6} textAnchor="middle" fontSize="13" fontWeight="700">{v}</text>
             )}
             {mode === "build" && (
@@ -805,7 +805,7 @@ function GraphBuilder() {
           </div>
           <div className="form-row">
             <label>{rb("最大目盛り数")}</label>
-            <input type="number" min="5" max="20" value={maxTick} onChange={e=>setMaxTick(Number(e.target.value))} />
+            <input type="number" min="5" max="100" value={maxTick} onChange={e=>setMaxTick(Number(e.target.value))} />
           </div>
           <div className="form-row">
             <label>{rb("項目数")}</label>
@@ -951,6 +951,7 @@ function QuizMode() {
   const [selectedChoice, setSelectedChoice] = useState(null);
   const [numInput, setNumInput] = useState("");
   const [buildValues, setBuildValues] = useState({});
+  const [showValues, setShowValues] = useState(false);
 
   const q = QUESTIONS[qIndex];
   const correctCount = Object.values(answers).filter(a=>a.status==="correct").length;
@@ -1029,8 +1030,17 @@ function QuizMode() {
               userValues={buildValues[qIndex]}
               highlightIndex={hintIndex >= 0 ? hintIndex : null}
               onDragValue={(i,v) => setBV(i,v)}
+              showValues={showValues}
             />
           </div>
+
+          {q.type !== "build" && (
+            <div style={{textAlign:"center", marginTop:6}}>
+              <button className="btn secondary" onClick={()=>setShowValues(s=>!s)}>
+                {showValues ? "🙈 数字をかくす" : "🔢 数字を表示する"}
+              </button>
+            </div>
+          )}
 
           <div className="question-box">
             <div className="question-text">{rb(q.question)}</div>
