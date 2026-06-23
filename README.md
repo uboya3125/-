@@ -32,6 +32,15 @@ https://（ユーザー名）.github.io/（リポジトリ名）/
 3. リポジトリの Settings → Pages → Branch: main / root → Save
 4. 数分後に `https://（ユーザー名）.github.io/goudou-app/` で公開完了
 
+## Google Apps Script (GAS) での公開手順
+
+1. [script.google.com](https://script.google.com) で新規プロジェクトを作成
+2. 自動生成される `コード.gs`（Code.gs）に、このリポジトリの `Code.gs` の内容をコピペ
+3. 「ファイル」→「追加」→「HTML」でファイル名を `index` として新規作成
+4. 作成された `index.html` に、このリポジトリの `index.html` の内容をそのままコピペ
+5. 「デプロイ」→「新しいデプロイ」→種類「ウェブアプリ」を選択し、アクセスできるユーザーを設定してデプロイ
+6. 発行されたURLでアプリが使用できます
+
 ## ライセンス
 
 教育目的での自由な利用・改変を許可します。
