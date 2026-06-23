@@ -785,6 +785,15 @@ function GraphBuilder() {
     setItems(newItems);
   };
 
+  const isOther = (label) => label === "その他" || label === "そのた";
+
+  const sortItems = () => {
+    const others = items.filter(it => isOther(it.label));
+    const rest = items.filter(it => !isOther(it.label));
+    rest.sort((a, b) => b.value - a.value);
+    setItems([...rest, ...others]);
+  };
+
   return (
     <div className="panel">
       <div className="form-panel">
@@ -822,7 +831,8 @@ function GraphBuilder() {
           </div>
         ))}
 
-        <div style={{marginTop:10}}>
+        <div style={{marginTop:10, display:"flex", gap:8}}>
+          <button className="btn secondary no-print" onClick={sortItems}>🔀 並べ替え</button>
           <button className="btn no-print" onClick={()=>window.print()}>🖨 {rb("印刷する")}</button>
         </div>
       </div>
