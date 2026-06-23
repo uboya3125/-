@@ -2,544 +2,737 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>ケタアゲ・スイカゲーム ～小数の位を学ぼう～</title>
-<script src="https://cdn.jsdelivr.net/npm/matter-js@0.19.0/build/matter.min.js"></script>
+<meta name="viewport" content="width=1024">
+<title>合同な図形 学習ソフト</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&display=swap" rel="stylesheet">
 <style>
   :root{
-    --bg:#fef6e4; --panel:#fffaf0; --ink:#3a2e1f; --accent:#ff8a3d;
+    --bg:#F8F9FA; --canvas-bg:#FFFFFF; --accent:#2563EB; --correct:#16A34A; --wrong:#DC2626; --hint:#FBBF24;
+    --vA:#DC2626; --vB:#2563EB; --vC:#16A34A; --vD:#EA580C;
   }
   *{box-sizing:border-box;}
-  html,body{margin:0;padding:0;height:100%;background:var(--bg);font-family:"Hiragino Maru Gothic ProN","Yu Gothic",sans-serif;color:var(--ink);overflow:hidden;}
-  #app{display:flex;flex-direction:row;width:100%;height:100vh;}
-  #gameArea{position:relative;flex:1 1 auto;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;min-width:0;}
-  #title{font-size:1.4rem;font-weight:bold;margin:6px 0 2px;text-align:center;}
-  #canvasWrap{position:relative;}
-  canvas{display:block;background:#ffffff;border:4px solid #d8a45e;border-radius:12px;touch-action:none;}
-  #nextLabel{position:absolute;top:8px;left:50%;transform:translateX(-50%);font-size:0.9rem;background:rgba(255,255,255,0.85);padding:4px 10px;border-radius:10px;border:2px solid #d8a45e;}
-  #toast{position:absolute;top:60px;left:50%;transform:translateX(-50%);background:rgba(255,255,255,0.97);border:3px solid var(--accent);border-radius:14px;padding:10px 18px;font-size:1.1rem;font-weight:bold;text-align:center;box-shadow:0 4px 10px rgba(0,0,0,0.15);opacity:0;transition:opacity .3s,transform .3s;pointer-events:none;z-index:20;max-width:80%;}
-  #toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
-  #celebrate{position:absolute;inset:0;display:none;align-items:center;justify-content:center;background:rgba(255,255,255,0.85);z-index:30;font-size:1.6rem;font-weight:bold;color:#e2541c;text-align:center;flex-direction:column;gap:10px;}
-  #celebrate.show{display:flex;}
-  #gameOverScreen{position:absolute;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,0.55);z-index:40;flex-direction:column;gap:14px;color:#fff;text-align:center;}
-  #gameOverScreen.show{display:flex;}
-  button{font-size:1.1rem;padding:10px 22px;border-radius:30px;border:none;background:var(--accent);color:#fff;font-weight:bold;cursor:pointer;box-shadow:0 3px 6px rgba(0,0,0,0.2);}
-  button:active{transform:scale(0.96);}
-  #sidePanel{width:260px;flex:0 0 260px;background:var(--panel);border-left:3px solid #d8a45e;padding:10px;overflow-y:auto;}
-  #sidePanel h2{font-size:1rem;margin:6px 0;border-bottom:2px solid var(--accent);padding-bottom:4px;}
-  table.placeTable{width:100%;border-collapse:collapse;font-size:0.85rem;margin-bottom:10px;}
-  table.placeTable th,table.placeTable td{border:1px solid #d8a45e;text-align:center;padding:4px 2px;}
-  table.placeTable th{background:#ffe7c2;}
-  #sumDisplay{font-size:1.3rem;font-weight:bold;text-align:center;background:#fff3e0;border-radius:10px;padding:8px;margin-bottom:10px;}
-  #scoreDisplay{font-size:1.05rem;text-align:center;font-weight:bold;margin-bottom:10px;}
-  #firstGoal{font-size:0.85rem;background:#fff3e0;border-radius:8px;padding:6px;margin-bottom:10px;}
-  #firstGoal.done{background:#d8f5d0;}
-  #controls{display:flex;flex-direction:column;gap:8px;}
-  #mute{background:#9c8d77;}
-  .legendRow{display:flex;align-items:center;gap:6px;font-size:0.8rem;margin:2px 0;}
-  .legendDot{width:14px;height:14px;border-radius:50%;display:inline-block;}
-  @media (max-width:760px){
-    #app{flex-direction:column;}
-    #sidePanel{width:100%;flex:0 0 auto;order:2;border-left:none;border-top:3px solid #d8a45e;}
-    #gameArea{order:1;}
+  html,body{margin:0;padding:0;background:var(--bg);font-family:'Noto Sans JP',sans-serif;color:#1f2937;}
+  #app{display:flex;flex-direction:column;min-width:1024px;}
+  header{display:flex;align-items:center;gap:16px;padding:10px 20px;background:#fff;border-bottom:2px solid #e5e7eb;}
+  header h1{font-size:18px;margin:0;color:var(--accent);}
+  .tabs{display:flex;gap:8px;margin-left:auto;}
+  .tab-btn{font-size:16px;font-weight:700;padding:8px 18px;border-radius:8px 8px 0 0;border:2px solid #e5e7eb;background:#f1f5f9;cursor:pointer;}
+  .tab-btn.active{background:var(--accent);color:#fff;border-color:var(--accent);}
+  main{display:flex;flex:1;}
+  #leftPanel{width:240px;flex:0 0 240px;background:#fff;border-right:2px solid #e5e7eb;padding:14px;min-height:680px;}
+  #leftPanel h2{font-size:15px;margin:0 0 10px;border-bottom:2px solid var(--accent);padding-bottom:4px;}
+  #centerArea{flex:1;display:flex;flex-direction:column;align-items:center;padding:16px;}
+  #canvasWrap{position:relative;width:800px;height:600px;background:var(--canvas-bg);border:2px solid #e5e7eb;border-radius:8px;box-shadow:0 1px 4px rgba(0,0,0,0.06);}
+  canvas{position:absolute;top:0;left:0;}
+  #bottomPanel{width:800px;margin-top:10px;background:#fff;border:2px solid #e5e7eb;border-radius:8px;padding:12px 16px;min-height:90px;font-size:18px;line-height:1.8;}
+  .hidden{display:none !important;}
+  button{font-family:inherit;}
+  .toolbtn{display:flex;align-items:center;gap:8px;width:100%;padding:10px;margin-bottom:8px;border:2px solid #e5e7eb;border-radius:8px;background:#f8fafc;font-size:15px;font-weight:500;cursor:pointer;text-align:left;}
+  .toolbtn.active{background:var(--accent);color:#fff;border-color:var(--accent);}
+  .diffbtn{padding:6px 10px;border-radius:6px;border:2px solid #e5e7eb;background:#f8fafc;font-size:13px;margin-right:4px;margin-bottom:4px;cursor:pointer;}
+  .diffbtn.active{background:var(--accent);color:#fff;border-color:var(--accent);}
+  #scoreBar{font-size:15px;font-weight:700;background:#f1f5f9;border-radius:8px;padding:8px 10px;margin-bottom:12px;text-align:center;}
+  #answerRow{display:flex;align-items:center;gap:10px;margin-top:8px;}
+  #answerInput{font-size:20px;padding:6px 10px;width:120px;border:2px solid #cbd5e1;border-radius:6px;}
+  #submitBtn,#nextBtn,#showSampleBtn,#undoBtn{font-size:15px;font-weight:700;padding:8px 16px;border-radius:8px;border:none;background:var(--accent);color:#fff;cursor:pointer;}
+  #feedback{font-weight:700;margin-top:6px;}
+  #feedback.correct{color:var(--correct);}
+  #feedback.wrong{color:var(--wrong);}
+  .vlabel{position:absolute;font-weight:700;font-size:16px;pointer-events:none;}
+  #methodTabs{display:flex;gap:6px;margin-bottom:10px;}
+  .methodbtn{flex:1;padding:6px;font-size:13px;font-weight:700;border-radius:6px;border:2px solid #e5e7eb;background:#f8fafc;cursor:pointer;}
+  .methodbtn.active{background:#16A34A;color:#fff;border-color:#16A34A;}
+  #stepIndicator{font-weight:700;color:var(--accent);font-size:16px;margin-bottom:4px;}
+  #introOverlay{position:fixed;inset:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:50;}
+  #introOverlay .box{background:#fff;border-radius:12px;padding:28px 32px;max-width:560px;font-size:16px;line-height:1.8;}
+  #introOverlay h2{color:var(--accent);}
+  #introOverlay button{margin-top:14px;font-size:16px;font-weight:700;padding:10px 20px;border-radius:8px;border:none;background:var(--accent);color:#fff;cursor:pointer;}
+  @media print{
+    header,#leftPanel,.tabs,#drawMode,#methodTabs{display:none !important;}
+    body{background:#fff;}
   }
 </style>
 </head>
 <body>
 <div id="app">
-  <div id="gameArea">
-    <div id="title">ケタアゲ・スイカゲーム 〜小数の位を学ぼう〜</div>
-    <div id="canvasWrap">
-      <div id="nextLabel">つぎ: <span id="nextVal">0.001</span></div>
-      <div id="toast"></div>
-      <div id="celebrate">
-        <div id="celebrateText"></div>
+  <header>
+    <h1>合同な図形 学習ソフト</h1>
+    <div class="tabs">
+      <button class="tab-btn active" id="tabQuiz">演習モード</button>
+      <button class="tab-btn" id="tabDraw">作図モード</button>
+    </div>
+  </header>
+  <main>
+    <div id="leftPanel">
+      <div id="quizLeft">
+        <h2>もんだいの しゅるい</h2>
+        <p style="font-size:13px;color:#555;">せんせいモード：なんいど</p>
+        <div>
+          <button class="diffbtn active" data-diff="mix">こんごう</button>
+          <button class="diffbtn" data-diff="side">へんのみ</button>
+          <button class="diffbtn" data-diff="angle">かくのみ</button>
+        </div>
+        <div id="scoreBar">0問中0問正解（0%）</div>
+        <button class="toolbtn" id="restartBtn">出題をやり直す</button>
       </div>
-      <div id="gameOverScreen">
-        <div>ゲームオーバー！</div>
-        <div id="finalScore"></div>
-        <button id="retryBtn">もう一度</button>
+      <div id="drawLeft" class="hidden">
+        <h2>ツール</h2>
+        <button class="toolbtn active" data-tool="ruler">📏 じょうぎ</button>
+        <button class="toolbtn" data-tool="compass">🧭 コンパス</button>
+        <button class="toolbtn" data-tool="protractor">📐 ぶんどき</button>
+        <button class="toolbtn" data-tool="eraser">🧹 けしごむ</button>
+        <h2 style="margin-top:14px;">さくずほうほう</h2>
+        <div id="methodTabs">
+          <button class="methodbtn active" data-method="A">A 三辺</button>
+          <button class="methodbtn" data-method="B">B 二辺夾角</button>
+          <button class="methodbtn" data-method="C">C 一辺両角</button>
+        </div>
+        <button class="toolbtn" id="showSampleBtn">👀 答えを見る</button>
+        <button class="toolbtn" id="undoBtn">↩ もとに戻す(Ctrl+Z)</button>
+        <button class="toolbtn" id="drawRestartBtn">🔄 この問題をやり直す</button>
       </div>
     </div>
-  </div>
-  <div id="sidePanel">
-    <h2>位取り表（くらいどりひょう）</h2>
-    <table class="placeTable">
-      <thead><tr><th>1の位</th><th>0.1の位</th><th>0.01の位</th><th>0.001の位</th></tr></thead>
-      <tbody><tr><td id="cnt1">0</td><td id="cnt01">0</td><td id="cnt001">0</td><td id="cnt0001">0</td></tr></tbody>
-    </table>
-    <div id="sumDisplay">合計: <span id="sumVal">0.000</span></div>
-    <div id="scoreDisplay">スコア: <span id="scoreVal">0</span></div>
-    <div id="firstGoal">🎯 目標: 「1」を1個つくろう！</div>
-    <div>
-      <div class="legendRow"><span class="legendDot" style="background:#6fc8e6"></span>0.001（千分の一の位）</div>
-      <div class="legendRow"><span class="legendDot" style="background:#7bc96f"></span>0.01（百分の一の位）</div>
-      <div class="legendRow"><span class="legendDot" style="background:#ffb648"></span>0.1（十分の一の位）</div>
-      <div class="legendRow"><span class="legendDot" style="background:#ef5b5b"></span>1（一の位）</div>
+    <div id="centerArea">
+      <div id="canvasWrap">
+        <canvas id="mainCanvas" width="800" height="600"></canvas>
+      </div>
+      <div id="bottomPanel">
+        <div id="quizBottom">
+          <div id="questionText" style="font-weight:700;font-size:18px;"></div>
+          <div id="answerRow">
+            <input type="number" id="answerInput" step="0.1" placeholder="数値">
+            <span id="unitLabel"></span>
+            <button id="submitBtn">こたえる</button>
+            <button id="nextBtn" class="hidden">つぎの問題へ</button>
+          </div>
+          <div id="feedback"></div>
+        </div>
+        <div id="drawBottom" class="hidden">
+          <div id="stepIndicator"></div>
+          <div id="stepText"></div>
+        </div>
+      </div>
     </div>
-    <div id="controls">
-      <button id="mute">🔊 音を消す</button>
-      <button id="restartBtn">最初からやり直す</button>
-    </div>
+  </main>
+</div>
+
+<div id="introOverlay">
+  <div class="box">
+    <h2>合同<ruby>合同<rt>ごうどう</rt></ruby>な図形 学習ソフトへ ようこそ！</h2>
+    <p>① 「演習モード」では、合同な図形の対応する辺や角の大きさをこたえます。</p>
+    <p>② 「作図モード」では、コンパスや定規・分度器を使って合同な三角形をかく練習をします。</p>
+    <p>上のタブでモードをえらんで、はじめましょう！</p>
+    <button id="introCloseBtn">はじめる</button>
   </div>
 </div>
 
 <script>
-(function(){
-"use strict";
+/* =========================================================
+   ここに先生が問題を追加してください（QUIZ_PROBLEMS, DRAW_PROBLEMS）
+   ========================================================= */
+const QUIZ_PROBLEMS = {
+  triangle_acute: [
+    {pts:[[0,0],[6,0],[2,4.5]], labels:['A','B','C']},
+    {pts:[[0,0],[5,0],[2.5,4]], labels:['A','B','C']},
+    {pts:[[0,0],[7,0],[3,3.5]], labels:['A','B','C']},
+    {pts:[[0,0],[6,0],[3,5]], labels:['A','B','C']},
+  ],
+  triangle_obtuse: [
+    {pts:[[0,0],[6,0],[7.5,2]], labels:['A','B','C']},
+    {pts:[[0,0],[5,0],[6.5,1.5]], labels:['A','B','C']},
+    {pts:[[0,0],[7,0],[8,1.8]], labels:['A','B','C']},
+    {pts:[[0,0],[6,0],[7,1.2]], labels:['A','B','C']},
+  ],
+  triangle_right: [
+    {pts:[[0,0],[6,0],[0,4]], labels:['A','B','C']},
+    {pts:[[0,0],[5,0],[0,5]], labels:['A','B','C']},
+    {pts:[[0,0],[7,0],[0,3]], labels:['A','B','C']},
+    {pts:[[0,0],[4,0],[0,6]], labels:['A','B','C']},
+  ],
+  quad_parallelogram: [
+    {pts:[[0,0],[6,0],[8,4],[2,4]], labels:['A','B','C','D']},
+    {pts:[[0,0],[5,0],[7,3],[2,3]], labels:['A','B','C','D']},
+    {pts:[[0,0],[7,0],[9,3.5],[2,3.5]], labels:['A','B','C','D']},
+    {pts:[[0,0],[6,0],[7.5,4.5],[1.5,4.5]], labels:['A','B','C','D']},
+  ],
+  quad_trapezoid: [
+    {pts:[[0,0],[8,0],[6,4],[2,4]], labels:['A','B','C','D']},
+    {pts:[[0,0],[7,0],[5,3.5],[1.5,3.5]], labels:['A','B','C','D']},
+    {pts:[[0,0],[9,0],[6.5,4],[2,4]], labels:['A','B','C','D']},
+    {pts:[[0,0],[8,0],[5.5,3],[2.5,3]], labels:['A','B','C','D']},
+  ],
+  quad_general: [
+    {pts:[[0,0],[6,0],[7,4],[1,5]], labels:['A','B','C','D']},
+    {pts:[[0,0],[5,0],[6.5,3.5],[0.5,4.5]], labels:['A','B','C','D']},
+    {pts:[[0,0],[7,0.5],[6,4.5],[1.5,4]], labels:['A','B','C','D']},
+    {pts:[[0,0],[6,1],[5,5],[0.5,3.5]], labels:['A','B','C','D']},
+  ],
+};
 
-/* ===== ゲーム定数 ===== */
-const LEVELS = [
-  {value:0.001, label:"0.001", name:"千分の一の位", color:"#6fc8e6", radius:18, score:1},
-  {value:0.01,  label:"0.01",  name:"百分の一の位", color:"#7bc96f", radius:26, score:10},
-  {value:0.1,   label:"0.1",   name:"十分の一の位", color:"#ffb648", radius:36, score:100},
-  {value:1,     label:"1",     name:"一の位",       color:"#ef5b5b", radius:50, score:1000}
-];
-const MERGE_COUNT = 10;
+const DRAW_PROBLEMS = {
+  A: [
+    {AB:5,AC:4,BC:3},
+    {AB:6,AC:5,BC:4},
+    {AB:7,AC:6,BC:5},
+    {AB:5,AC:6,BC:7},
+    {AB:6,AC:4,BC:5},
+  ],
+  B: [
+    {AB:5,AC:4,angleA:60},
+    {AB:6,AC:5,angleA:45},
+    {AB:5,AC:5,angleA:70},
+    {AB:7,AC:4,angleA:50},
+    {AB:6,AC:6,angleA:80},
+  ],
+  C: [
+    {AB:6,angleA:50,angleB:60},
+    {AB:5,angleA:70,angleB:40},
+    {AB:7,angleA:45,angleB:55},
+    {AB:6,angleA:80,angleB:35},
+    {AB:5,angleA:60,angleB:60},
+  ],
+};
+/* ========================================================= */
 
-/* ===== Matter.js セットアップ ===== */
-const { Engine, World, Bodies, Body, Events, Vector, Composite } = Matter;
-const engine = Engine.create();
-engine.world.gravity.y = 1;
+const state = {
+  mode: 'quiz',
+  difficulty: 'mix',
+  quiz: { queue: [], idx: 0, current: null, score:{correct:0,total:0}, weak:{} },
+  draw: {
+    tool: 'ruler', method: 'A', problemIdx: 0,
+    step: 1, drawnArcs: [], drawnLines: [], history: [],
+    compassCenter: null, compassRadius: null, rulerStart: null,
+    protractorBase: null, showSample: false,
+  },
+};
 
-let CANVAS_W = 460, CANVAS_H = 620;
-const WALL_T = 18;
-
-function computeCanvasSize(){
-  const wrap = document.getElementById('gameArea');
-  const maxW = Math.min(wrap.clientWidth - 20, 520);
-  const maxH = window.innerHeight - 60;
-  let w = Math.max(300, maxW);
-  let h = Math.min(maxH, w * 1.35);
-  CANVAS_W = Math.floor(w);
-  CANVAS_H = Math.floor(h);
-}
-computeCanvasSize();
-
-const canvas = document.createElement('canvas');
-canvas.id = 'gameCanvas';
-document.getElementById('canvasWrap').insertBefore(canvas, document.getElementById('nextLabel'));
+const SCALE = 40; // 1cm = 40px
+const canvas = document.getElementById('mainCanvas');
 const ctx = canvas.getContext('2d');
 
-function resizeCanvas(){
-  computeCanvasSize();
-  canvas.width = CANVAS_W;
-  canvas.height = CANVAS_H;
-  rebuildWalls();
+function toPx(cmPt, ox, oy){ return { x: ox + cmPt[0]*SCALE, y: oy - cmPt[1]*SCALE }; }
+
+/* ---------------- TAB SWITCH ---------------- */
+document.getElementById('tabQuiz').onclick = () => switchMode('quiz');
+document.getElementById('tabDraw').onclick = () => switchMode('draw');
+function switchMode(m){
+  state.mode = m;
+  document.getElementById('tabQuiz').classList.toggle('active', m==='quiz');
+  document.getElementById('tabDraw').classList.toggle('active', m==='draw');
+  document.getElementById('quizLeft').classList.toggle('hidden', m!=='quiz');
+  document.getElementById('drawLeft').classList.toggle('hidden', m!=='draw');
+  document.getElementById('quizBottom').classList.toggle('hidden', m!=='quiz');
+  document.getElementById('drawBottom').classList.toggle('hidden', m!=='draw');
+  if(m==='quiz') renderQuiz(); else renderDraw();
 }
 
-let walls = [];
-function rebuildWalls(){
-  walls.forEach(w=>World.remove(engine.world, w));
-  walls = [];
-  const floor = Bodies.rectangle(CANVAS_W/2, CANVAS_H + WALL_T/2, CANVAS_W, WALL_T, {isStatic:true, friction:0.5});
-  const left = Bodies.rectangle(-WALL_T/2, CANVAS_H/2, WALL_T, CANVAS_H*2, {isStatic:true});
-  const right = Bodies.rectangle(CANVAS_W + WALL_T/2, CANVAS_H/2, WALL_T, CANVAS_H*2, {isStatic:true});
-  walls = [floor, left, right];
-  World.add(engine.world, walls);
-}
-rebuildWalls();
-window.addEventListener('resize', resizeCanvas);
+document.getElementById('introCloseBtn').onclick = () => {
+  document.getElementById('introOverlay').style.display = 'none';
+};
 
-/* ===== 状態 ===== */
-let pieces = []; // {body, levelIdx, id, groupId}
-let groups = {}; // groupId -> {levelIdx, memberIds:Set, count}
-let nextGroupId = 1;
-let nextPieceId = 1;
-let currentLevel = 0; // 落下中ピースのレベル
-let armX = CANVAS_W/2;
-let dropCooldown = false;
-let score = 0;
-let gameOver = false;
-let firstOneAchieved = false;
-let muted = false;
-const counts = {1:0, 0.1:0, 0.01:0, 0.001:0};
-
-let audioCtx = null;
-function ensureAudio(){
-  if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-}
-function beep(freq, dur, type='sine', gain=0.15){
-  if(muted) return;
-  try{
-    ensureAudio();
-    const osc = audioCtx.createOscillator();
-    const g = audioCtx.createGain();
-    osc.type = type;
-    osc.frequency.value = freq;
-    g.gain.value = gain;
-    osc.connect(g); g.connect(audioCtx.destination);
-    osc.start();
-    g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + dur);
-    osc.stop(audioCtx.currentTime + dur);
-  }catch(e){}
-}
-function sfxDrop(){ beep(300,0.08,'triangle',0.12); }
-function sfxMerge(){ beep(520,0.12,'sine',0.18); setTimeout(()=>beep(780,0.18,'sine',0.16),90); }
-function sfxBig(){ beep(440,0.15,'sine',0.2); setTimeout(()=>beep(660,0.15,'sine',0.2),120); setTimeout(()=>beep(880,0.25,'sine',0.22),240); }
-
-function randomLevelForSpawn(){
-  // 序盤は0.001のみ、進むほど少し上のレベルも混ざる(0~1の範囲のみ、ゲームバランス用)
-  const maxLevel = Math.min(1, Math.floor(score/3000)); // 0 or 1 (0.001 or 0.01)
-  const r = Math.random();
-  if(maxLevel === 0) return 0;
-  return r < 0.75 ? 0 : 1;
-}
-
-let nextLevel = 0;
-function pickNext(){
-  nextLevel = randomLevelForSpawn();
-  document.getElementById('nextVal').textContent = LEVELS[nextLevel].label;
-}
-pickNext();
-
-/* ===== ピース生成・描画 ===== */
-function spawnFalling(){
-  currentLevel = nextLevel;
-  pickNext();
-}
-spawnFalling();
-
-function createPieceBody(x, y, levelIdx){
-  const lv = LEVELS[levelIdx];
-  const r = lv.radius;
-  const body = Bodies.circle(x, y, r, {
-    restitution: 0.25,
-    friction: 0.4,
-    frictionAir: 0.001,
-    density: 0.001,
-    label: 'piece'
-  });
-  body.levelIdx = levelIdx;
-  body.pieceId = nextPieceId++;
-  body.groupId = null;
-  return body;
-}
-
-function dropPiece(x){
-  if(gameOver || dropCooldown) return;
-  dropCooldown = true;
-  const lv = LEVELS[currentLevel];
-  const r = lv.radius;
-  const clampedX = Math.max(r+WALL_T, Math.min(CANVAS_W - r - WALL_T, x));
-  const body = createPieceBody(clampedX, r + 10, currentLevel);
-  World.add(engine.world, body);
-  pieces.push(body);
-  sfxDrop();
-  counts[lv.value] += 0; // no count change on drop (only on merge completion / initial spawn doesn't add to placeTable count until it's a standalone settled piece)
-  setTimeout(()=>{ dropCooldown = false; }, 480);
-  spawnFalling();
-}
-
-/* ===== 入力 ===== */
-function setArmFromClientX(clientX){
-  const rect = canvas.getBoundingClientRect();
-  armX = clientX - rect.left;
-}
-canvas.addEventListener('mousemove', e=> setArmFromClientX(e.clientX));
-canvas.addEventListener('mousedown', e=>{ setArmFromClientX(e.clientX); dropPiece(armX); });
-canvas.addEventListener('touchmove', e=>{ e.preventDefault(); const t=e.touches[0]; setArmFromClientX(t.clientX); }, {passive:false});
-canvas.addEventListener('touchstart', e=>{ e.preventDefault(); const t=e.touches[0]; setArmFromClientX(t.clientX); dropPiece(armX); }, {passive:false});
-
-/* ===== グループ管理（接触で同じ位同士をグループ化） =====
-   ルール: 同じ levelIdx のピースが接触したらグループに統合。
-   10個になった瞬間に1つ上のピースへ繰り上げる。 */
-
-function findGroupOf(body){
-  return body.groupId;
-}
-
-function mergeGroups(gidA, gidB){
-  if(gidA === gidB) return gidA;
-  const a = groups[gidA], b = groups[gidB];
-  if(!a || !b) return gidA || gidB;
-  // bをaに統合
-  b.memberIds.forEach(id=>{
-    a.memberIds.add(id);
-  });
-  const bodyMap = {};
-  pieces.forEach(p=>{ if(b.memberIds.has(p.pieceId) || a.memberIds.has(p.pieceId)) bodyMap[p.pieceId]=p; });
-  a.memberIds.forEach(id=>{ if(bodyMap[id]) bodyMap[id].groupId = gidA; });
-  delete groups[gidB];
-  a.count = a.memberIds.size;
-  return gidA;
-}
-
-Events.on(engine, 'collisionStart', (event)=>{
-  event.pairs.forEach(pair=>{
-    const A = pair.bodyA, B = pair.bodyB;
-    if(A.label !== 'piece' || B.label !== 'piece') return;
-    if(A.levelIdx !== B.levelIdx) return;
-    if(A.levelIdx === LEVELS.length - 1) return; // 最大レベルは合体しない(本ゲームでは1まで)
-    let gidA = A.groupId, gidB = B.groupId;
-    if(!gidA && !gidB){
-      const gid = nextGroupId++;
-      groups[gid] = {levelIdx:A.levelIdx, memberIds:new Set([A.pieceId, B.pieceId]), count:2};
-      A.groupId = gid; B.groupId = gid;
-    } else if(gidA && !gidB){
-      groups[gidA].memberIds.add(B.pieceId);
-      groups[gidA].count = groups[gidA].memberIds.size;
-      B.groupId = gidA;
-    } else if(!gidA && gidB){
-      groups[gidB].memberIds.add(A.pieceId);
-      groups[gidB].count = groups[gidB].memberIds.size;
-      A.groupId = gidB;
-    } else {
-      mergeGroups(gidA, gidB);
-    }
-  });
+/* ===================== QUIZ MODE ===================== */
+document.querySelectorAll('.diffbtn').forEach(b=>{
+  b.onclick = () => {
+    document.querySelectorAll('.diffbtn').forEach(x=>x.classList.remove('active'));
+    b.classList.add('active');
+    state.difficulty = b.dataset.diff;
+    buildQuizQueue();
+  };
 });
+document.getElementById('restartBtn').onclick = () => { buildQuizQueue(); };
 
-/* ===== 演出系 ===== */
-let particles = [];
-function spawnParticles(x, y, color, n=24){
-  for(let i=0;i<n;i++){
-    const angle = Math.random()*Math.PI*2;
-    const speed = 2 + Math.random()*4;
-    particles.push({
-      x, y,
-      vx: Math.cos(angle)*speed,
-      vy: Math.sin(angle)*speed - 2,
-      life: 1, color
+function dist(p1,p2){ return Math.hypot(p1[0]-p2[0], p1[1]-p2[1]); }
+function angleAt(pts,i){
+  const n = pts.length;
+  const p = pts[i], a = pts[(i-1+n)%n], b = pts[(i+1)%n];
+  const v1 = [a[0]-p[0], a[1]-p[1]], v2 = [b[0]-p[0], b[1]-p[1]];
+  const dot = v1[0]*v2[0]+v1[1]*v2[1];
+  const mag = Math.hypot(...v1)*Math.hypot(...v2);
+  return Math.acos(Math.max(-1,Math.min(1,dot/mag))) * 180/Math.PI;
+}
+
+function buildQuizQueue(){
+  const keys = Object.keys(QUIZ_PROBLEMS);
+  let list = [];
+  keys.forEach(k => {
+    QUIZ_PROBLEMS[k].forEach((p) => list.push({shape:k, data:p}));
+  });
+  for(let i=list.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [list[i],list[j]]=[list[j],list[i]]; }
+  state.quiz.queue = list;
+  state.quiz.idx = 0;
+  state.quiz.score = {correct:0,total:0};
+  state.quiz.weak = {};
+  nextQuizProblem();
+}
+
+function nextQuizProblem(){
+  if(state.quiz.idx >= state.quiz.queue.length){ showResultSummary(); return; }
+  const item = state.quiz.queue[state.quiz.idx];
+  const pts = item.data.pts;
+  const labels = item.data.labels;
+  const n = pts.length;
+  let qType = state.difficulty;
+  if(qType === 'mix') qType = Math.random() < 0.5 ? 'side' : 'angle';
+  const targetIdx = Math.floor(Math.random()*n);
+
+  const angle = Math.random()*Math.PI*2;
+  const reflect = Math.random() < 0.5;
+  const cos = Math.cos(angle), sin = Math.sin(angle);
+  function transform(p){
+    let x = p[0], y = p[1];
+    if(reflect) x = -x;
+    return [x*cos - y*sin, x*sin + y*cos];
+  }
+  const pts2raw = pts.map(transform);
+  state.quiz.current = {
+    shape: item.shape, pts1: pts, pts2: pts2raw, labels, qType, targetIdx, attempts:0,
+  };
+  document.getElementById('answerInput').value = '';
+  document.getElementById('answerInput').disabled = false;
+  document.getElementById('submitBtn').classList.remove('hidden');
+  document.getElementById('nextBtn').classList.add('hidden');
+  document.getElementById('feedback').textContent = '';
+  document.getElementById('feedback').className = '';
+  renderQuiz();
+}
+
+function correctAnswerValue(cur){
+  const {pts1, qType, targetIdx} = cur;
+  const n = pts1.length;
+  if(qType === 'side') return dist(pts1[targetIdx], pts1[(targetIdx+1)%n]);
+  return angleAt(pts1, targetIdx);
+}
+
+function renderQuiz(){
+  ctx.clearRect(0,0,800,600);
+  document.querySelectorAll('.vlabel').forEach(e=>e.remove());
+  updateScoreBar();
+  const cur = state.quiz.current;
+  if(!cur){ return; }
+  const labels = cur.labels;
+  const n = labels.length;
+
+  function bbox(pts){
+    const xs = pts.map(p=>p[0]), ys = pts.map(p=>p[1]);
+    return {minx:Math.min(...xs), maxx:Math.max(...xs), miny:Math.min(...ys), maxy:Math.max(...ys)};
+  }
+  const b1 = bbox(cur.pts1), b2 = bbox(cur.pts2);
+  const baseY = 420;
+  const origin1 = { x: 80 - b1.minx*SCALE, y: baseY };
+  const origin2 = { x: 480 - b2.minx*SCALE, y: baseY };
+
+  function drawShape(pts, origin){
+    ctx.beginPath();
+    pts.forEach((p,i) => {
+      const px = toPx(p, origin.x, origin.y);
+      if(i===0) ctx.moveTo(px.x, px.y); else ctx.lineTo(px.x, px.y);
     });
-  }
-}
-function updateParticles(){
-  particles.forEach(p=>{
-    p.x += p.vx; p.y += p.vy; p.vy += 0.15; p.life -= 0.025;
-  });
-  particles = particles.filter(p=>p.life > 0);
-}
-function drawParticles(){
-  particles.forEach(p=>{
-    ctx.globalAlpha = Math.max(0,p.life);
-    ctx.fillStyle = p.color;
-    ctx.beginPath();
-    ctx.arc(p.x, p.y, 4, 0, Math.PI*2);
-    ctx.fill();
-  });
-  ctx.globalAlpha = 1;
-}
-
-let toastTimer = null;
-function showToast(text){
-  const el = document.getElementById('toast');
-  el.textContent = text;
-  el.classList.add('show');
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(()=> el.classList.remove('show'), 2400);
-}
-
-function showCelebrate(text, duration){
-  const el = document.getElementById('celebrate');
-  document.getElementById('celebrateText').textContent = text;
-  el.classList.add('show');
-  setTimeout(()=> el.classList.remove('show'), duration || 2200);
-}
-
-/* スカッシュ&ストレッチ用アニメーション情報を持つ "ポップ" ピース */
-let popAnimations = []; // {x,y,levelIdx,t}
-
-function processMergeCompletions(){
-  Object.keys(groups).forEach(gidStr=>{
-    const gid = Number(gidStr);
-    const g = groups[gid];
-    if(!g) return;
-    if(g.count >= MERGE_COUNT){
-      // 対象ピースを集めて重心を計算、削除
-      const members = pieces.filter(p=> p.groupId === gid);
-      if(members.length < MERGE_COUNT) { g.count = members.length; return; }
-      let cx = 0, cy = 0;
-      members.slice(0, MERGE_COUNT).forEach(p=>{ cx += p.position.x; cy += p.position.y; });
-      cx /= MERGE_COUNT; cy /= MERGE_COUNT;
-      const lv = LEVELS[g.levelIdx];
-
-      members.slice(0, MERGE_COUNT).forEach(p=>{
-        World.remove(engine.world, p);
-        pieces = pieces.filter(pp=>pp.pieceId !== p.pieceId);
-      });
-      delete groups[gid];
-
-      spawnParticles(cx, cy, lv.color, 30);
-      sfxMerge();
-
-      const newLevelIdx = g.levelIdx + 1;
-      const newBody = createPieceBody(cx, Math.max(cy, LEVELS[newLevelIdx].radius+10), newLevelIdx);
-      World.add(engine.world, newBody);
-      pieces.push(newBody);
-      popAnimations.push({pieceId:newBody.pieceId, t:0});
-
-      const nl = LEVELS[newLevelIdx];
-      showToast(`${lv.label}が10こ集まって ${nl.label} になったよ！\n（${lv.name}が10こで、${nl.name}になったよ）`);
-
-      if(newLevelIdx === LEVELS.length - 1){
-        // 「1」完成
-        if(!firstOneAchieved){
-          firstOneAchieved = true;
-          document.getElementById('firstGoal').textContent = '🎉 やったね！「1」を完成させたよ！';
-          document.getElementById('firstGoal').classList.add('done');
-          sfxBig();
-          showCelebrate('🎉 「1」が完成！すごい！ 🎉\nこのままエンドレスで続けよう！', 2600);
-        } else {
-          sfxBig();
-        }
-      }
-    }
-  });
-}
-
-/* ===== 位取り表・合計・スコア更新 ===== */
-function updateStats(){
-  const counts = {0:0,1:0,2:0,3:0};
-  pieces.forEach(p=>{ counts[p.levelIdx]++; });
-  document.getElementById('cnt0001').textContent = counts[0];
-  document.getElementById('cnt001').textContent = counts[1];
-  document.getElementById('cnt01').textContent = counts[2];
-  document.getElementById('cnt1').textContent = counts[3];
-
-  const sum = counts[0]*0.001 + counts[1]*0.01 + counts[2]*0.1 + counts[3]*1;
-  document.getElementById('sumVal').textContent = sum.toFixed(3);
-
-  score = counts[0]*LEVELS[0].score + counts[1]*LEVELS[1].score + counts[2]*LEVELS[2].score + counts[3]*LEVELS[3].score;
-  document.getElementById('scoreVal').textContent = score;
-}
-/* ===== ゲームオーバー判定 ===== */
-function checkGameOver(){
-  if(gameOver) return;
-  for(const p of pieces){
-    if(p.position.y - p.circleRadius < 0 && Math.abs(p.velocity.y) < 0.5){
-      triggerGameOver();
-      return;
-    }
-  }
-}
-function triggerGameOver(){
-  gameOver = true;
-  document.getElementById('finalScore').textContent = `スコア: ${score}`;
-  document.getElementById('gameOverScreen').classList.add('show');
-}
-
-function resetGame(){
-  pieces.forEach(p=> World.remove(engine.world, p));
-  pieces = [];
-  groups = {};
-  particles = [];
-  popAnimations = [];
-  score = 0;
-  gameOver = false;
-  firstOneAchieved = false;
-  document.getElementById('firstGoal').textContent = '🎯 目標: 「1」を1個つくろう！';
-  document.getElementById('firstGoal').classList.remove('done');
-  document.getElementById('gameOverScreen').classList.remove('show');
-  currentLevel = 0;
-  pickNext();
-  spawnFalling();
-}
-document.getElementById('retryBtn').addEventListener('click', resetGame);
-document.getElementById('restartBtn').addEventListener('click', resetGame);
-document.getElementById('mute').addEventListener('click', (e)=>{
-  muted = !muted;
-  e.target.textContent = muted ? '🔇 音を出す' : '🔊 音を消す';
-});
-
-/* ===== 描画ループ ===== */
-function drawArm(){
-  const lv = LEVELS[currentLevel];
-  ctx.save();
-  ctx.globalAlpha = 0.85;
-  ctx.fillStyle = lv.color;
-  ctx.beginPath();
-  const ax = Math.max(lv.radius+WALL_T, Math.min(CANVAS_W-lv.radius-WALL_T, armX || CANVAS_W/2));
-  ctx.arc(ax, lv.radius+10, lv.radius, 0, Math.PI*2);
-  ctx.fill();
-  ctx.strokeStyle = '#fff';
-  ctx.lineWidth = 3;
-  ctx.stroke();
-  ctx.fillStyle = '#fff';
-  ctx.font = `bold ${Math.max(12, lv.radius*0.5)}px sans-serif`;
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillText(lv.label, ax, lv.radius+10);
-  ctx.restore();
-  // guide line
-  ctx.save();
-  ctx.strokeStyle = 'rgba(150,150,150,0.4)';
-  ctx.setLineDash([6,6]);
-  ctx.beginPath();
-  ctx.moveTo(ax, lv.radius*2+12);
-  ctx.lineTo(ax, CANVAS_H);
-  ctx.stroke();
-  ctx.restore();
-}
-
-function drawPieces(){
-  pieces.forEach(p=>{
-    const lv = LEVELS[p.levelIdx];
-    let scale = 1;
-    const pop = popAnimations.find(a=>a.pieceId === p.pieceId);
-    if(pop){
-      pop.t += 0.06;
-      scale = 1 + Math.sin(Math.min(pop.t,1)*Math.PI) * 0.35;
-      if(pop.t >= 1) popAnimations = popAnimations.filter(a=>a!==pop);
-    }
-    ctx.save();
-    ctx.translate(p.position.x, p.position.y);
-    ctx.rotate(p.angle);
-    ctx.scale(scale, scale);
-    ctx.fillStyle = lv.color;
-    ctx.beginPath();
-    ctx.arc(0,0,lv.radius,0,Math.PI*2);
-    ctx.fill();
-    ctx.strokeStyle = 'rgba(0,0,0,0.15)';
+    ctx.closePath();
+    ctx.strokeStyle = '#1f2937';
     ctx.lineWidth = 2;
     ctx.stroke();
-    ctx.restore();
+  }
+  drawShape(cur.pts1, origin1);
+  drawShape(cur.pts2, origin2);
 
-    // ラベルは回転無視で描画
-    ctx.save();
-    ctx.fillStyle = '#fff';
-    ctx.font = `bold ${Math.max(11, lv.radius*0.42)}px sans-serif`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(lv.label, p.position.x, p.position.y);
-    ctx.restore();
+  const vColorsRaw = ['#DC2626','#2563EB','#16A34A','#EA580C'];
+  const vShapes = ['●','■','▲','♦'];
 
-    // グループカウント表示
-    if(p.groupId && groups[p.groupId]){
-      const g = groups[p.groupId];
+  function placeLabels(pts, origin){
+    pts.forEach((p,i) => {
+      const px = toPx(p, origin.x, origin.y);
+      const div = document.createElement('div');
+      div.className = 'vlabel';
+      div.style.left = (px.x - 8) + 'px';
+      div.style.top = (px.y - 24) + 'px';
+      div.style.color = vColorsRaw[i];
+      div.textContent = vShapes[i] + labels[i];
+      document.getElementById('canvasWrap').appendChild(div);
+    });
+  }
+  placeLabels(cur.pts1, origin1);
+  placeLabels(cur.pts2, origin2);
+
+  const n2 = cur.pts2.length;
+  if(cur.qType === 'side'){
+    const i = cur.targetIdx, j=(i+1)%n2;
+    const p1 = toPx(cur.pts2[i], origin2.x, origin2.y);
+    const p2 = toPx(cur.pts2[j], origin2.x, origin2.y);
+    const mx = (p1.x+p2.x)/2, my=(p1.y+p2.y)/2;
+    ctx.fillStyle = '#DC2626';
+    ctx.font = 'bold 18px sans-serif';
+    ctx.fillText('？', mx-6, my-6);
+    document.getElementById('questionText').textContent = `${labels[i]}${labels[j]} の長さは何cm？（対応する図形のもう一方を見て考えよう）`;
+    document.getElementById('unitLabel').textContent = 'cm';
+  } else {
+    const i = cur.targetIdx;
+    const p = toPx(cur.pts2[i], origin2.x, origin2.y);
+    ctx.fillStyle = '#DC2626';
+    ctx.font = 'bold 18px sans-serif';
+    ctx.fillText('？', p.x-6, p.y-14);
+    document.getElementById('questionText').textContent = `角${labels[i]} の大きさは何度？（対応する図形のもう一方を見て考えよう）`;
+    document.getElementById('unitLabel').textContent = '°';
+  }
+
+  if(cur.attempts >= 1){
+    const idx = cur.targetIdx;
+    const idx2 = cur.qType==='side' ? (cur.targetIdx+1)%n : null;
+    [idx, idx2].forEach(ix => {
+      if(ix===null || ix===undefined) return;
+      const p = toPx(cur.pts1[ix], origin1.x, origin1.y);
       ctx.save();
-      ctx.fillStyle = '#333';
-      ctx.font = `bold 11px sans-serif`;
-      ctx.textAlign = 'center';
-      ctx.fillText(`${g.count}/${MERGE_COUNT}`, p.position.x, p.position.y - lv.radius - 8);
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, 10, 0, Math.PI*2);
+      ctx.strokeStyle = '#FBBF24';
+      ctx.lineWidth = 3;
+      ctx.stroke();
+      ctx.restore();
+    });
+  }
+  if(cur.attempts >= 2){
+    if(cur.qType === 'side'){
+      const i=cur.targetIdx, j=(i+1)%n;
+      const p1 = toPx(cur.pts1[i], origin1.x, origin1.y);
+      const p2 = toPx(cur.pts1[j], origin1.x, origin1.y);
+      ctx.save();
+      ctx.strokeStyle = '#FBBF24'; ctx.lineWidth = 5;
+      ctx.beginPath(); ctx.moveTo(p1.x,p1.y); ctx.lineTo(p2.x,p2.y); ctx.stroke();
+      ctx.restore();
+    } else {
+      const p = toPx(cur.pts1[cur.targetIdx], origin1.x, origin1.y);
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, 18, 0, Math.PI*2);
+      ctx.fillStyle = 'rgba(251,191,36,0.3)';
+      ctx.fill();
       ctx.restore();
     }
-  });
-}
-
-function render(){
-  ctx.clearRect(0,0,CANVAS_W,CANVAS_H);
-  drawArm();
-  drawPieces();
-  drawParticles();
-}
-
-function loop(){
-  if(!gameOver){
-    Engine.update(engine, 1000/60);
-    processMergeCompletions();
-    updateParticles();
-    updateStats();
-    checkGameOver();
-  } else {
-    updateParticles();
   }
-  render();
-  requestAnimationFrame(loop);
 }
-loop();
 
-})();
+document.getElementById('submitBtn').onclick = () => {
+  const cur = state.quiz.current;
+  if(!cur) return;
+  const val = parseFloat(document.getElementById('answerInput').value);
+  if(isNaN(val)){ return; }
+  const correct = correctAnswerValue(cur);
+  const ok = Math.abs(val - correct) < 0.3;
+  const fb = document.getElementById('feedback');
+  if(ok){
+    state.quiz.score.correct++; state.quiz.score.total++;
+    fb.textContent = '✅ 正解！対応する辺（角）の大きさは等しいね✨';
+    fb.className = 'correct';
+    document.getElementById('submitBtn').classList.add('hidden');
+    document.getElementById('nextBtn').classList.remove('hidden');
+    document.getElementById('answerInput').disabled = true;
+  } else {
+    cur.attempts++;
+    if(cur.attempts === 1){
+      fb.textContent = '❌ もう一度考えてみよう。対応する頂点はどれとどれかな？';
+    } else if(cur.attempts === 2){
+      fb.textContent = '❌ ヒント：対応する辺（角）を見つけよう。（黄色い印を見てね）';
+    } else {
+      state.quiz.score.total++;
+      const shapeName = cur.shape;
+      state.quiz.weak[shapeName] = (state.quiz.weak[shapeName]||0)+1;
+      fb.textContent = `答えは ${correct.toFixed(1)}${cur.qType==='side'?'cm':'°'} だよ。合同な図形では対応する辺の長さ・角の大きさはすべて等しくなります。`;
+      document.getElementById('submitBtn').classList.add('hidden');
+      document.getElementById('nextBtn').classList.remove('hidden');
+      document.getElementById('answerInput').disabled = true;
+    }
+    fb.className = 'wrong';
+  }
+  renderQuiz();
+};
+
+document.getElementById('nextBtn').onclick = () => {
+  state.quiz.idx++;
+  nextQuizProblem();
+};
+
+function updateScoreBar(){
+  const {correct, total} = state.quiz.score;
+  const pct = total>0 ? Math.round(correct/total*100) : 0;
+  document.getElementById('scoreBar').textContent = `${total}問中${correct}問正解（${pct}%）`;
+}
+
+function showResultSummary(){
+  const {correct,total} = state.quiz.score;
+  const pct = total>0?Math.round(correct/total*100):0;
+  let weakText = Object.keys(state.quiz.weak).length
+    ? Object.entries(state.quiz.weak).map(([k,v])=>`${shapeLabelJP(k)}（${v}回）`).join('、')
+    : 'なし';
+  const ov = document.createElement('div');
+  ov.id = 'resultOverlay';
+  ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:60;';
+  ov.innerHTML = `<div style="background:#fff;border-radius:12px;padding:28px 36px;text-align:center;font-size:16px;line-height:1.8;">
+    <h2 style="color:#2563EB;margin-top:0;">けっか発表！</h2>
+    <p>${total}問中 ${correct}問正解（正答率 ${pct}%）</p>
+    <p>苦手だった図形：${weakText}</p>
+    <button id="resultCloseBtn" style="font-size:16px;font-weight:700;padding:10px 20px;border-radius:8px;border:none;background:#2563EB;color:#fff;cursor:pointer;">もう一度</button>
+  </div>`;
+  document.body.appendChild(ov);
+  document.getElementById('resultCloseBtn').onclick = () => {
+    ov.remove();
+    buildQuizQueue();
+  };
+}
+
+function shapeLabelJP(k){
+  return {
+    triangle_acute:'鋭角三角形', triangle_obtuse:'鈍角三角形', triangle_right:'直角三角形',
+    quad_parallelogram:'平行四辺形', quad_trapezoid:'台形', quad_general:'一般四角形',
+  }[k] || k;
+}
+
+/* ===================== DRAW MODE ===================== */
+document.querySelectorAll('[data-tool]').forEach(b=>{
+  b.onclick = () => {
+    document.querySelectorAll('[data-tool]').forEach(x=>x.classList.remove('active'));
+    b.classList.add('active');
+    state.draw.tool = b.dataset.tool;
+    state.draw.compassCenter = null; state.draw.rulerStart=null; state.draw.protractorBase=null;
+  };
+});
+document.querySelectorAll('.methodbtn').forEach(b=>{
+  b.onclick = () => {
+    document.querySelectorAll('.methodbtn').forEach(x=>x.classList.remove('active'));
+    b.classList.add('active');
+    state.draw.method = b.dataset.method;
+    resetDrawProblem();
+  };
+});
+document.getElementById('drawRestartBtn').onclick = resetDrawProblem;
+document.getElementById('showSampleBtn').onclick = () => {
+  state.draw.showSample = !state.draw.showSample;
+  renderDraw();
+};
+document.getElementById('undoBtn').onclick = undoDraw;
+document.addEventListener('keydown', (e) => {
+  if((e.ctrlKey||e.metaKey) && e.key === 'z'){ e.preventDefault(); undoDraw(); }
+});
+function undoDraw(){
+  const h = state.draw.history;
+  if(h.length===0) return;
+  const last = h.pop();
+  if(last.type==='line') state.draw.drawnLines.pop();
+  if(last.type==='arc') state.draw.drawnArcs.pop();
+  state.draw.step = Math.max(1, state.draw.step-1);
+  renderDraw();
+}
+
+function resetDrawProblem(){
+  state.draw.step = 1;
+  state.draw.drawnArcs = [];
+  state.draw.drawnLines = [];
+  state.draw.history = [];
+  state.draw.compassCenter = null;
+  state.draw.compassRadius = null;
+  state.draw.rulerStart = null;
+  state.draw.protractorBase = null;
+  state.draw.showSample = false;
+  renderDraw();
+}
+
+function currentDrawProblem(){
+  const list = DRAW_PROBLEMS[state.draw.method];
+  return list[state.draw.problemIdx % list.length];
+}
+
+const DRAW_ORIGIN = { x: 150, y: 480 };
+
+function stepDefs(method, prob){
+  if(method === 'A'){
+    return [
+      { text: `ステップ1：定規をつかって、底辺ABを${prob.AB}cmでひこう` },
+      { text: `ステップ2：コンパスをつかって、頂点Aから AC（${prob.AC}cm）の長さをとり、弧をかこう` },
+      { text: `ステップ3：コンパスをつかって、頂点Bから BC（${prob.BC}cm）の長さをとり、弧をかこう` },
+      { text: `ステップ4：2つの弧の交点が頂点C。AC・BCを結んで完成させよう` },
+    ];
+  }
+  if(method === 'B'){
+    return [
+      { text: `ステップ1：定規をつかって、底辺ABを${prob.AB}cmでひこう` },
+      { text: `ステップ2：分度器をつかって、頂点Aに角${prob.angleA}°をとり、補助線をひこう` },
+      { text: `ステップ3：コンパスをつかって、その方向にAC（${prob.AC}cm）の長さをとり、頂点Cを決めよう` },
+      { text: `ステップ4：BCを結んで完成させよう` },
+    ];
+  }
+  return [
+    { text: `ステップ1：定規をつかって、底辺ABを${prob.AB}cmでひこう` },
+    { text: `ステップ2：分度器をつかって、頂点Aに角${prob.angleA}°をとり、補助線をひこう` },
+    { text: `ステップ3：分度器をつかって、頂点Bに角${prob.angleB}°をとり、補助線をひこう` },
+    { text: `ステップ4：2本の補助線の交点が頂点C。結んで完成させよう` },
+  ];
+}
+
+function renderDraw(){
+  ctx.clearRect(0,0,800,600);
+  document.querySelectorAll('.vlabel').forEach(e=>e.remove());
+  const prob = currentDrawProblem();
+  const steps = stepDefs(state.draw.method, prob);
+  const step = Math.min(state.draw.step, steps.length);
+  document.getElementById('stepIndicator').textContent = `ステップ ${step} / ${steps.length}`;
+  document.getElementById('stepText').textContent = steps[step-1].text;
+
+  ctx.fillStyle = '#1f2937';
+  ctx.font = '14px sans-serif';
+  let cardText = '';
+  if(state.draw.method==='A') cardText = `三角形ABCをかこう：AB=${prob.AB}cm, AC=${prob.AC}cm, BC=${prob.BC}cm`;
+  if(state.draw.method==='B') cardText = `三角形ABCをかこう：AB=${prob.AB}cm, AC=${prob.AC}cm, 角A=${prob.angleA}°`;
+  if(state.draw.method==='C') cardText = `三角形ABCをかこう：AB=${prob.AB}cm, 角A=${prob.angleA}°, 角B=${prob.angleB}°`;
+  ctx.fillText(cardText, 20, 24);
+
+  const A = { x: DRAW_ORIGIN.x, y: DRAW_ORIGIN.y };
+  const B = { x: DRAW_ORIGIN.x + prob.AB*SCALE, y: DRAW_ORIGIN.y };
+
+  state.draw.drawnLines.forEach(l => {
+    ctx.beginPath();
+    ctx.moveTo(l.x1,l.y1); ctx.lineTo(l.x2,l.y2);
+    ctx.strokeStyle = l.color || '#1E3A5F';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+  });
+  state.draw.drawnArcs.forEach(a => {
+    ctx.beginPath();
+    ctx.arc(a.x, a.y, a.r, 0, Math.PI*2);
+    ctx.strokeStyle = '#1E3A5F';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+  });
+
+  if(state.draw.showSample){
+    drawSampleOverlay(prob, A, B);
+  }
+
+  if(state.draw.drawnLines.length >= 1 || step>1){
+    placeVertexLabel('A', A.x, A.y, '#DC2626');
+    placeVertexLabel('B', B.x, B.y, '#2563EB');
+  }
+  const Cpos = computeVertexC(prob, A, B, state.draw.method);
+  if(Cpos && state.draw.step > steps.length){
+    placeVertexLabel('C', Cpos.x, Cpos.y, '#16A34A');
+  }
+}
+
+function placeVertexLabel(text, x, y, color){
+  const div = document.createElement('div');
+  div.className = 'vlabel';
+  div.style.left = (x - 8) + 'px';
+  div.style.top = (y - 26) + 'px';
+  div.style.color = color;
+  div.textContent = text;
+  document.getElementById('canvasWrap').appendChild(div);
+}
+
+function circleIntersection(x1, y1, r1, x2, y2, r2) {
+  const d = Math.hypot(x2 - x1, y2 - y1);
+  if (d > r1 + r2 || d < Math.abs(r1 - r2) || d===0) return null;
+  const a = (r1**2 - r2**2 + d**2) / (2 * d);
+  const h = Math.sqrt(Math.max(0, r1**2 - a**2));
+  const mx = x1 + a * (x2 - x1) / d;
+  const my = y1 + a * (y2 - y1) / d;
+  return [
+    { x: mx + h * (y2 - y1) / d, y: my - h * (x2 - x1) / d },
+    { x: mx - h * (y2 - y1) / d, y: my + h * (x2 - x1) / d }
+  ];
+}
+
+function computeVertexC(prob, A, B, method){
+  if(method==='A'){
+    const sols = circleIntersection(A.x,A.y,prob.AC*SCALE, B.x,B.y,prob.BC*SCALE);
+    if(!sols) return null;
+    return sols.find(s=>s.y < A.y) || sols[0];
+  }
+  if(method==='B'){
+    const rad = -prob.angleA*Math.PI/180;
+    return { x: A.x + prob.AC*SCALE*Math.cos(rad), y: A.y + prob.AC*SCALE*Math.sin(rad) };
+  }
+  const radA = -prob.angleA*Math.PI/180;
+  const dirA = { x: Math.cos(radA), y: Math.sin(radA) };
+  const dirBrad = Math.PI - prob.angleB*Math.PI/180;
+  const dirB = { x: Math.cos(-dirBrad), y: Math.sin(-dirBrad) };
+  const det = dirA.x*(-dirB.y) - dirA.y*(-dirB.x);
+  if(Math.abs(det) < 1e-6) return null;
+  const dx = B.x-A.x, dy=B.y-A.y;
+  const t = (dx*(-dirB.y) - dy*(-dirB.x))/det;
+  return { x: A.x + t*dirA.x, y: A.y + t*dirA.y };
+}
+
+function drawSampleOverlay(prob, A, B){
+  const Cpos = computeVertexC(prob, A, B, state.draw.method);
+  ctx.save();
+  ctx.strokeStyle = 'rgba(37,99,235,0.35)';
+  ctx.lineWidth = 3;
+  ctx.beginPath(); ctx.moveTo(A.x,A.y); ctx.lineTo(B.x,B.y); ctx.stroke();
+  if(Cpos){
+    ctx.beginPath(); ctx.moveTo(A.x,A.y); ctx.lineTo(Cpos.x,Cpos.y); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(B.x,B.y); ctx.lineTo(Cpos.x,Cpos.y); ctx.stroke();
+  }
+  ctx.restore();
+}
+
+let dragStart = null;
+canvas.addEventListener('mousedown', (e) => {
+  if(state.mode !== 'draw') return;
+  const rect = canvas.getBoundingClientRect();
+  const x = e.clientX - rect.left, y = e.clientY - rect.top;
+  const prob = currentDrawProblem();
+  const A = { x: DRAW_ORIGIN.x, y: DRAW_ORIGIN.y };
+  const B = { x: DRAW_ORIGIN.x + prob.AB*SCALE, y: DRAW_ORIGIN.y };
+
+  if(state.draw.tool === 'ruler'){
+    if(!state.draw.rulerStart){
+      state.draw.rulerStart = {x,y};
+    } else {
+      const l = {x1:state.draw.rulerStart.x, y1:state.draw.rulerStart.y, x2:x, y2:y};
+      state.draw.drawnLines.push(l);
+      state.draw.history.push({type:'line'});
+      state.draw.rulerStart = null;
+      checkStepCompletion(prob);
+      renderDraw();
+    }
+  } else if(state.draw.tool === 'compass'){
+    if(!state.draw.compassCenter){
+      state.draw.compassCenter = {x,y};
+    } else if(state.draw.compassRadius == null){
+      state.draw.compassRadius = Math.hypot(x-state.draw.compassCenter.x, y-state.draw.compassCenter.y);
+    } else {
+      state.draw.drawnArcs.push({x:state.draw.compassCenter.x, y:state.draw.compassCenter.y, r:state.draw.compassRadius});
+      state.draw.history.push({type:'arc'});
+      state.draw.compassCenter = null;
+      state.draw.compassRadius = null;
+      checkStepCompletion(prob);
+      renderDraw();
+    }
+  } else if(state.draw.tool === 'protractor'){
+    if(!state.draw.protractorBase){
+      state.draw.protractorBase = {x,y};
+    } else {
+      const l = {x1:state.draw.protractorBase.x, y1:state.draw.protractorBase.y, x2:x, y2:y, color:'#7c3aed'};
+      state.draw.drawnLines.push(l);
+      state.draw.history.push({type:'line'});
+      state.draw.protractorBase = null;
+      checkStepCompletion(prob);
+      renderDraw();
+    }
+  } else if(state.draw.tool === 'eraser'){
+    state.draw.drawnLines = [];
+    state.draw.drawnArcs = [];
+    renderDraw();
+  }
+});
+
+function checkStepCompletion(prob){
+  const steps = stepDefs(state.draw.method, prob).length;
+  if(state.draw.step < steps + 1) state.draw.step++;
+}
+
+/* ===================== INIT ===================== */
+buildQuizQueue();
+renderQuiz();
 </script>
 </body>
 </html>
